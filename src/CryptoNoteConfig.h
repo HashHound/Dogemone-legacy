@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <initializer_list>
+#include <string>
 
 namespace CryptoNote {
   const std::string DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
