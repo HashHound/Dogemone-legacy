@@ -100,7 +100,7 @@ target_link_libraries(Daemon
     ${Boost_SYSTEM_LIBRARY}
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     -static-libgcc -static-libstdc++
-
+)
 set(COMMIT_ID_IN_VERSION ON CACHE BOOL "Include commit ID in version")
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/version")
 if (NOT COMMIT_ID_IN_VERSION)
