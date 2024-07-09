@@ -15,6 +15,7 @@
 #include "CryptoNoteFormatUtils.h"
 #include "CryptoNoteTools.h"
 #include "TransactionExtra.h"
+#include "CryptoNoteConfig.h"
 
 #undef ERROR
 
@@ -151,12 +152,21 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     return false;
   }
 
+  // Calculate dev fee (10% of base reward)
+  uint64_t devFee = blockReward * 0.10;
+  uint64_t minerReward = blockReward - devFee;
+
+  // Decompose amounts for miner and dev fee
   std::vector<uint64_t> outAmounts;
-  decompose_amount_into_digits(blockReward, m_defaultDustThreshold,
+  decompose_amount_into_digits(minerReward, m_defaultDustThreshold,
     [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
     [&outAmounts](uint64_t a_dust) { outAmounts.push_back(a_dust); });
 
-  if (!(1 <= maxOuts)) { logger(ERROR, BRIGHT_RED) << "max_out must be non-zero"; return false; }
+  if (!(1 <= maxOuts)) {
+    logger(ERROR, BRIGHT_RED) << "max_out must be non-zero";
+    return false;
+  }
+
   while (maxOuts < outAmounts.size()) {
     outAmounts[outAmounts.size() - 2] += outAmounts.back();
     outAmounts.resize(outAmounts.size() - 1);
@@ -170,8 +180,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
 
     if (!(r)) {
-      logger(ERROR, BRIGHT_RED)
-        << "while creating outs: failed to generate_key_derivation("
+      logger(ERROR, BRIGHT_RED) << "while creating outs: failed to generate_key_derivation("
         << minerAddress.viewPublicKey << ", " << txkey.secretKey << ")";
       return false;
     }
@@ -179,10 +188,8 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
 
     if (!(r)) {
-      logger(ERROR, BRIGHT_RED)
-        << "while creating outs: failed to derive_public_key("
-        << derivation << ", " << no << ", "
-        << minerAddress.spendPublicKey << ")";
+      logger(ERROR, BRIGHT_RED) << "while creating outs: failed to derive_public_key("
+        << derivation << ", " << no << ", " << minerAddress.spendPublicKey << ")";
       return false;
     }
 
@@ -195,13 +202,36 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     tx.outputs.push_back(out);
   }
 
-  if (!(summaryAmounts == blockReward)) {
+  // Add developer fee output
+  Crypto::KeyDerivation devDerivation = boost::value_initialized<Crypto::KeyDerivation>();
+  Crypto::PublicKey devOutEphemeralPubKey = boost::value_initialized<Crypto::PublicKey>();
+
+  if (!Crypto::generate_key_derivation(parseAccountAddressString(DEVELOPER_ADDRESS).viewPublicKey, txkey.secretKey, devDerivation)) {
+    logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
+    return false;
+  }
+
+  if (!Crypto::derive_public_key(devDerivation, 0, parseAccountAddressString(DEVELOPER_ADDRESS).spendPublicKey, devOutEphemeralPubKey)) {
+    logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
+    return false;
+  }
+
+  KeyOutput devTk;
+  devTk.key = devOutEphemeralPubKey;
+
+  TransactionOutput devOut;
+  devOut.amount = devFee;
+  devOut.target = devTk;
+  tx.outputs.push_back(devOut);
+
+  summaryAmounts += devFee;
+
+  if (summaryAmounts != blockReward) {
     logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
     return false;
   }
 
   tx.version = CURRENT_TRANSACTION_VERSION;
-  //lock
   tx.unlockTime = height + m_minedMoneyUnlockWindow;
   tx.inputs.push_back(in);
   return true;
@@ -270,7 +300,7 @@ bool Currency::isAmountApplicableInFusionTransactionInput(uint64_t amount, uint6
   auto it = std::lower_bound(PRETTY_AMOUNTS.begin(), PRETTY_AMOUNTS.end(), amount);
   if (it == PRETTY_AMOUNTS.end() || amount != *it) {
     return false;
-  } 
+  }
 
   amountPowerOfTen = static_cast<uint8_t>(std::distance(PRETTY_AMOUNTS.begin(), it) / 9);
   return true;
