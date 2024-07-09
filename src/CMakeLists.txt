@@ -61,11 +61,11 @@ if (MSVC)
   target_link_libraries(System ws2_32)
 endif ()
 
-target_link_libraries(ConnectivityTool CryptoNoteCore Logging Crypto P2P Rpc Http Serialization Common System ${Boost_LIBRARIES} -static-libgcc -static-libstdc++)
-target_link_libraries(Daemon CryptoNoteCore P2P Rpc Serialization System Http Logging Common Crypto upnpc-static BlockchainExplorer ${Boost_LIBRARIES} -static-libgcc -static-libstdc++)
-target_link_libraries(SimpleWallet Wallet NodeRpcProxy Transfers Rpc Http Serialization CryptoNoteCore System Logging Common Crypto ${Boost_LIBRARIES} -static-libgcc -static-libstdc++)
-target_link_libraries(PaymentGateService PaymentGate JsonRpcServer Wallet NodeRpcProxy Transfers CryptoNoteCore Crypto P2P Rpc Http Serialization System Logging Common InProcessNode upnpc-static BlockchainExplorer ${Boost_LIBRARIES} -static-libgcc -static-libstdc++)
-target_link_libraries(Miner CryptoNoteCore Rpc Serialization System Http Logging Common Crypto ${Boost_LIBRARIES} -static-libgcc -static-libstdc++)
+target_link_libraries(ConnectivityTool CryptoNoteCore Logging Crypto P2P Rpc Http Serialization Common System ${Boost_LIBRARIES})
+target_link_libraries(Daemon CryptoNoteCore P2P Rpc Serialization System Http Logging Common Crypto upnpc-static BlockchainExplorer ${Boost_LIBRARIES})
+target_link_libraries(SimpleWallet Wallet NodeRpcProxy Transfers Rpc Http Serialization CryptoNoteCore System Logging Common Crypto ${Boost_LIBRARIES})
+target_link_libraries(PaymentGateService PaymentGate JsonRpcServer Wallet NodeRpcProxy Transfers CryptoNoteCore Crypto P2P Rpc Http Serialization System Logging Common InProcessNode upnpc-static BlockchainExplorer ${Boost_LIBRARIES})
+target_link_libraries(Miner CryptoNoteCore Rpc Serialization System Http Logging Common Crypto ${Boost_LIBRARIES})
 
 add_dependencies(Rpc version)
 
@@ -77,7 +77,7 @@ add_dependencies(P2P version)
 
 set_property(TARGET ConnectivityTool PROPERTY OUTPUT_NAME "connectivity_tool")
 set_property(TARGET SimpleWallet PROPERTY OUTPUT_NAME "simplewallet")
-set_property(TARGET PaymentGateService PROPERTY OUTPUT_NAME "walletdeamon")
-set_property(TARGET Miner PROPERTY OUTPUT_NAME "cpuminer")
+set_property(TARGET PaymentGateService PROPERTY OUTPUT_NAME "walletd")
+set_property(TARGET Miner PROPERTY OUTPUT_NAME "miner")
 #TODO Specify the name of daemon for your currency
 set_property(TARGET Daemon PROPERTY OUTPUT_NAME "dogemoned")
