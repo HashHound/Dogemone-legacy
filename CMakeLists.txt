@@ -1,31 +1,29 @@
 cmake_minimum_required(VERSION 2.8.6)
 
 set(VERSION "0.1")
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_CONFIGURATION_TYPES Debug RelWithDebInfo Release CACHE TYPE INTERNAL)
 set(CMAKE_SKIP_INSTALL_RULES ON)
 set(CMAKE_SKIP_PACKAGE_ALL_DEPENDENCY ON)
 set(CMAKE_SUPPRESS_REGENERATION ON)
 enable_testing()
-
 configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake ${CMAKE_BINARY_DIR})
 
 project(dogemone)
 
-include_directories(include src external "${CMAKE_BINARY_DIR}/version" ${CMAKE_SOURCE_DIR}/boost/include)
-link_directories(${CMAKE_SOURCE_DIR}/boost/lib)
-
+include_directories(include src external "${CMAKE_BINARY_DIR}/version")
 if(APPLE)
   include_directories(SYSTEM /usr/include/malloc)
   enable_language(ASM)
 endif()
 
 if(MSVC)
-  include_directories(src/Platform/Windows)
+include_directories(src/Platform/Windows)
 elseif(APPLE)
-  include_directories(src/Platform/OSX)
+include_directories(src/Platform/OSX)
 else()
-  include_directories(src/Platform/Linux)
+include_directories(src/Platform/Linux)
 endif()
 
 set(STATIC ${MSVC} CACHE BOOL "Link libraries statically")
@@ -141,19 +139,3 @@ endif()
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(tests)
-
-# CPack configuration
-include(CPack)
-set(CPACK_PACKAGE_NAME "Dogemone")
-set(CPACK_PACKAGE_VERSION "0.1")
-set(CPACK_PACKAGE_CONTACT "your_email@example.com")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Dogemone Privacy Coin")
-set(CPACK_PACKAGE_VENDOR "Your Company")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "Dogemone")
-set(CPACK_PACKAGE_FILE_NAME "Dogemone-0.1-Linux")
-set(CPACK_SOURCE_GENERATOR "TGZ")
-
-# Define the packaging components
-install(DIRECTORY boost/include/ DESTINATION include)
-install(DIRECTORY boost/lib/ DESTINATION lib)
-install(TARGETS dogemoned DESTINATION bin)
