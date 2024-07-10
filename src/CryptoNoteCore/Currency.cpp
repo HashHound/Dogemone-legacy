@@ -154,7 +154,9 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   // Calculate dev fee (10% of base reward)
   uint64_t devFee = blockReward * 0.10;
-  uint64_t minerReward = blockReward - devFee;
+  uint64_t minerReward = blockReward - devFee - fee; // Subtracting the fee from the miner's reward
+
+  logger(INFO) << "Block reward: " << blockReward << ", Dev fee: " << devFee << ", Miner reward: " << minerReward << ", Fee: " << fee;
 
   // Decompose amounts for miner and dev fee
   std::vector<uint64_t> outAmounts;
@@ -179,7 +181,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
     bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
 
-    if (!(r)) {
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "while creating outs: failed to generate_key_derivation("
         << minerAddress.viewPublicKey << ", " << txkey.secretKey << ")";
       return false;
@@ -187,7 +189,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
     r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
 
-    if (!(r)) {
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "while creating outs: failed to derive_public_key("
         << derivation << ", " << no << ", " << minerAddress.spendPublicKey << ")";
       return false;
@@ -231,6 +233,8 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   tx.outputs.push_back(devOut);
 
   summaryAmounts += devFee;
+
+  logger(INFO) << "Summary amounts: " << summaryAmounts << ", Block reward: " << blockReward;
 
   if (summaryAmounts != blockReward) {
     logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
