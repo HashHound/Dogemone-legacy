@@ -152,9 +152,9 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     return false;
   }
 
-  // Calculate dev fee (10% of base reward + fee)
-  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10) + fee;
-  uint64_t minerReward = blockReward - devFee; // Subtracting the dev fee from the block reward
+  // Calculate dev fee (10% of base reward)
+  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10);
+  uint64_t minerReward = blockReward - devFee - fee; // Subtracting the fee from the miner's reward
 
   logger(INFO) << "Block reward: " << blockReward << ", Dev fee: " << devFee << ", Miner reward: " << minerReward << ", Fee: " << fee;
 
@@ -238,9 +238,10 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   devOut.target = devTk;
   tx.outputs.push_back(devOut);
 
-  summaryAmounts += devFee;
+  summaryAmounts += devFee + fee; // Include the transaction fee in the summary
 
-  // Ensure summary amounts match block reward
+  logger(INFO) << "Summary amounts: " << summaryAmounts << ", Block reward: " << blockReward;
+
   if (summaryAmounts != blockReward) {
     logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
     return false;
@@ -258,7 +259,6 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   return true;
 }
-
 
 bool Currency::isFusionTransaction(const std::vector<uint64_t>& inputsAmounts, const std::vector<uint64_t>& outputsAmounts, size_t size) const {
   if (size > fusionTxMaxSize()) {
