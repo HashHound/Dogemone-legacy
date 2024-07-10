@@ -205,20 +205,20 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   }
 
   // Add developer fee output
+  const std::string DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
   AccountPublicAddress devAddress;
   if (!parseAccountAddressString(DEVELOPER_ADDRESS, devAddress)) {
     logger(ERROR, BRIGHT_RED) << "Failed to parse developer address";
     return false;
   }
 
-  Crypto::KeyDerivation devDerivation = boost::value_initialized<Crypto::KeyDerivation>();
-  Crypto::PublicKey devOutEphemeralPubKey = boost::value_initialized<Crypto::PublicKey>();
-
+  Crypto::KeyDerivation devDerivation;
   if (!Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation)) {
     logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
     return false;
   }
 
+  Crypto::PublicKey devOutEphemeralPubKey;
   if (!Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey)) {
     logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
     return false;
