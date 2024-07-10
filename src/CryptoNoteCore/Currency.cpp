@@ -207,25 +207,19 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   // Add developer fee output
   const std::string DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
   AccountPublicAddress devAddress;
-  bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
-  logger(INFO) << "Parse developer address: " << (parseSuccess ? "success" : "failure");
-  if (!parseSuccess) {
+  if (!parseAccountAddressString(DEVELOPER_ADDRESS, devAddress)) {
     logger(ERROR, BRIGHT_RED) << "Failed to parse developer address";
     return false;
   }
 
   Crypto::KeyDerivation devDerivation;
-  bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation);
-  logger(INFO) << "Key derivation for developer address: " << (keyDerivationSuccess ? "success" : "failure");
-  if (!keyDerivationSuccess) {
+  if (!Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation)) {
     logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
     return false;
   }
 
   Crypto::PublicKey devOutEphemeralPubKey;
-  bool derivePubKeySuccess = Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey);
-  logger(INFO) << "Public key derivation for developer address: " << (derivePubKeySuccess ? "success" : "failure");
-  if (!derivePubKeySuccess) {
+  if (!Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey)) {
     logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
     return false;
   }
@@ -250,13 +244,6 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   tx.version = CURRENT_TRANSACTION_VERSION;
   tx.unlockTime = height + m_minedMoneyUnlockWindow;
   tx.inputs.push_back(in);
-
-  // Log transaction outputs
-  logger(INFO) << "Transaction outputs:";
-  for (const auto& output : tx.outputs) {
-    logger(INFO) << "Output amount: " << output.amount << ", Output key: " << output.target;
-  }
-
   return true;
 }
 
