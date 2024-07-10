@@ -153,7 +153,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   }
 
   // Calculate dev fee (10% of base reward)
-  uint64_t devFee = blockReward * 0.10;
+  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10);
   uint64_t minerReward = blockReward - devFee - fee; // Subtracting the fee from the miner's reward
 
   logger(INFO) << "Block reward: " << blockReward << ", Dev fee: " << devFee << ", Miner reward: " << minerReward << ", Fee: " << fee;
