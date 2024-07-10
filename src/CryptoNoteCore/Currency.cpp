@@ -152,9 +152,9 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     return false;
   }
 
-  // Calculate dev fee (10% of base reward)
-  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10);
-  uint64_t minerReward = blockReward - devFee - fee; // Subtracting the fee from the miner's reward
+  // Calculate dev fee (10% of base reward + fee)
+  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10) + fee;
+  uint64_t minerReward = blockReward - devFee; // Subtracting the dev fee from the block reward
 
   logger(INFO) << "Block reward: " << blockReward << ", Dev fee: " << devFee << ", Miner reward: " << minerReward << ", Fee: " << fee;
 
@@ -205,21 +205,26 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   }
 
   // Add developer fee output
-  const std::string DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
   AccountPublicAddress devAddress;
-  if (!parseAccountAddressString(DEVELOPER_ADDRESS, devAddress)) {
+  bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
+  logger(INFO) << "Parse developer address: " << (parseSuccess ? "success" : "failure");
+  if (!parseSuccess) {
     logger(ERROR, BRIGHT_RED) << "Failed to parse developer address";
     return false;
   }
 
   Crypto::KeyDerivation devDerivation;
-  if (!Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation)) {
+  bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation);
+  logger(INFO) << "Key derivation for developer address: " << (keyDerivationSuccess ? "success" : "failure");
+  if (!keyDerivationSuccess) {
     logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
     return false;
   }
 
   Crypto::PublicKey devOutEphemeralPubKey;
-  if (!Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey)) {
+  bool derivePubKeySuccess = Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey);
+  logger(INFO) << "Public key derivation for developer address: " << (derivePubKeySuccess ? "success" : "failure");
+  if (!derivePubKeySuccess) {
     logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
     return false;
   }
@@ -234,8 +239,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   summaryAmounts += devFee;
 
-  logger(INFO) << "Summary amounts: " << summaryAmounts << ", Block reward: " << blockReward;
-
+  // Ensure summary amounts match block reward
   if (summaryAmounts != blockReward) {
     logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
     return false;
@@ -244,8 +248,16 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
   tx.version = CURRENT_TRANSACTION_VERSION;
   tx.unlockTime = height + m_minedMoneyUnlockWindow;
   tx.inputs.push_back(in);
+
+  // Log transaction outputs
+  logger(INFO) << "Transaction outputs:";
+  for (const auto& output : tx.outputs) {
+    logger(INFO) << "Output amount: " << output.amount;
+  }
+
   return true;
 }
+
 
 bool Currency::isFusionTransaction(const std::vector<uint64_t>& inputsAmounts, const std::vector<uint64_t>& outputsAmounts, size_t size) const {
   if (size > fusionTxMaxSize()) {
