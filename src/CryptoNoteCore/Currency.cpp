@@ -124,13 +124,18 @@ bool Currency::constructGenesisTransaction(Transaction& tx) const {
 bool Currency::generateGenesisBlock() {
   m_genesisBlock = boost::value_initialized<Block>();
 
-  Transaction genesisTransaction;
-  if (!constructGenesisTransaction(genesisTransaction)) {
-    logger(ERROR, BRIGHT_RED) << "Failed to construct genesis transaction";
+  // Hardcoded genesis coinbase transaction
+  std::string genesisCoinbaseTxHex = GENESIS_COINBASE_TX_HEX;
+  BinaryArray minerTxBlob;
+
+  bool r =
+    fromHex(genesisCoinbaseTxHex, minerTxBlob) &&
+    fromBinaryArray(m_genesisBlock.baseTransaction, minerTxBlob);
+
+  if (!r) {
+    logger(ERROR, BRIGHT_RED) << "Failed to parse coinbase tx from hardcoded blob";
     return false;
   }
-
-  m_genesisBlock.baseTransaction = genesisTransaction;
 
   m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
   m_genesisBlock.minorVersion = BLOCK_MINOR_VERSION_0;
@@ -148,7 +153,6 @@ bool Currency::generateGenesisBlock() {
 
   logger(INFO) << "Genesis block generated with hash: " << Common::podToHex(m_genesisBlockHash);
   return true;
-}
 }
 
 bool Currency::getBlockReward(size_t medianSize, size_t currentBlockSize, uint64_t alreadyGeneratedCoins,
