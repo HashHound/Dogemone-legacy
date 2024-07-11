@@ -16,6 +16,7 @@
 #include "CryptoNoteTools.h"
 #include "TransactionExtra.h"
 #include "CryptoNoteConfig.h"
+#include "crypto/crypto.h"
 
 #undef ERROR
 
@@ -69,29 +70,6 @@ bool Currency::init() {
   return true;
 }
 
-bool Currency::generateGenesisBlock() {
-  m_genesisBlock = boost::value_initialized<Block>();
-
-  Transaction genesisTransaction;
-  if (!constructGenesisTransaction(genesisTransaction)) {
-    logger(ERROR, BRIGHT_RED) << "Failed to construct genesis transaction";
-    return false;
-  }
-
-  m_genesisBlock.baseTransaction = genesisTransaction;
-
-  m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
-  m_genesisBlock.minorVersion = BLOCK_MINOR_VERSION_0;
-  m_genesisBlock.timestamp = 0;
-  m_genesisBlock.nonce = 70;
-  if (m_testnet) {
-    ++m_genesisBlock.nonce;
-  }
-  //miner::find_nonce_for_given_block(bl, 1, 0);
-
-  return true;
-}
-
 bool Currency::constructGenesisTransaction(Transaction& tx) const {
   tx.inputs.clear();
   tx.outputs.clear();
@@ -138,8 +116,37 @@ bool Currency::constructGenesisTransaction(Transaction& tx) const {
   tx.outputs.push_back(out);
 
   tx.version = CURRENT_TRANSACTION_VERSION;
-  tx.unlockTime = 60;
+  tx.unlockTime = 60;  // Set unlock time to 60 blocks
 
+  return true;
+}
+
+bool Currency::generateGenesisBlock() {
+  m_genesisBlock = boost::value_initialized<Block>();
+
+  Transaction genesisTransaction;
+  if (!constructGenesisTransaction(genesisTransaction)) {
+    logger(ERROR, BRIGHT_RED) << "Failed to construct genesis transaction";
+    return false;
+  }
+
+  m_genesisBlock.baseTransaction = genesisTransaction;
+
+  m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
+  m_genesisBlock.minorVersion = BLOCK_MINOR_VERSION_0;
+  m_genesisBlock.timestamp = 0;
+  m_genesisBlock.nonce = 70;
+  if (m_testnet) {
+    ++m_genesisBlock.nonce;
+  }
+
+  // Ensure genesis block hash is correctly set
+  if (!get_block_hash(m_genesisBlock, m_genesisBlockHash)) {
+    logger(ERROR, BRIGHT_RED) << "Failed to calculate genesis block hash";
+    return false;
+  }
+
+  logger(INFO) << "Genesis block generated with hash: " << Common::podToHex(m_genesisBlockHash);
   return true;
 }
 
@@ -498,6 +505,14 @@ size_t Currency::getApproximateMaximumInputCount(size_t transactionSize, size_t 
   return (transactionSize - headerSize - outputsSize) / inputSize;
 }
 
+Transaction CurrencyBuilder::generateGenesisTransaction() {
+  CryptoNote::Transaction tx;
+  if (!m_currency.constructGenesisTransaction(tx)) {
+    throw std::runtime_error("Failed to construct genesis transaction");
+  }
+  return tx;
+}
+
 CurrencyBuilder::CurrencyBuilder(Logging::ILogger& log) : m_currency(log) {
   maxBlockNumber(parameters::CRYPTONOTE_MAX_BLOCK_NUMBER);
   maxBlockBlobSize(parameters::CRYPTONOTE_MAX_BLOCK_BLOB_SIZE);
@@ -547,14 +562,6 @@ CurrencyBuilder::CurrencyBuilder(Logging::ILogger& log) : m_currency(log) {
   blockchinIndicesFileName(parameters::CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME);
 
   testnet(false);
-}
-
-Transaction CurrencyBuilder::generateGenesisTransaction() {
-  CryptoNote::Transaction tx;
-  if (!m_currency.constructGenesisTransaction(tx)) {
-    throw std::runtime_error("Failed to construct genesis transaction");
-  }
-  return tx;
 }
 
 CurrencyBuilder& CurrencyBuilder::emissionSpeedFactor(unsigned int val) {
