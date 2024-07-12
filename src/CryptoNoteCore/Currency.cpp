@@ -139,7 +139,7 @@ bool Currency::constructGenesisTransaction(Transaction& tx) const {
   tx.outputs.push_back(out);
 
   tx.version = CURRENT_TRANSACTION_VERSION;
-  tx.unlockTime = 60;
+  tx.unlockTime = 0;
 
   return true;
 }
