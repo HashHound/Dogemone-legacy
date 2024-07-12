@@ -551,6 +551,57 @@ Transaction CurrencyBuilder::generateGenesisTransaction() {
   return tx;
 }
 
+CurrencyBuilder::CurrencyBuilder(Logging::ILogger& log) : m_currency(log) {
+  maxBlockNumber(parameters::CRYPTONOTE_MAX_BLOCK_NUMBER);
+  maxBlockBlobSize(parameters::CRYPTONOTE_MAX_BLOCK_BLOB_SIZE);
+  maxTxSize(parameters::CRYPTONOTE_MAX_TX_SIZE);
+  publicAddressBase58Prefix(parameters::CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX);
+  minedMoneyUnlockWindow(parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
+
+  timestampCheckWindow(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
+  blockFutureTimeLimit(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
+
+  moneySupply(parameters::MONEY_SUPPLY);
+  emissionSpeedFactor(parameters::EMISSION_SPEED_FACTOR);
+
+  rewardBlocksWindow(parameters::CRYPTONOTE_REWARD_BLOCKS_WINDOW);
+  blockGrantedFullRewardZone(parameters::CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE);
+  minerTxBlobReservedSize(parameters::CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE);
+
+  numberOfDecimalPlaces(parameters::CRYPTONOTE_DISPLAY_DECIMAL_POINT);
+
+  mininumFee(parameters::MINIMUM_FEE);
+  defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
+
+  difficultyTarget(parameters::DIFFICULTY_TARGET);
+  difficultyWindow(parameters::DIFFICULTY_WINDOW);
+  difficultyLag(parameters::DIFFICULTY_LAG);
+  difficultyCut(parameters::DIFFICULTY_CUT);
+
+  maxBlockSizeInitial(parameters::MAX_BLOCK_SIZE_INITIAL);
+  maxBlockSizeGrowthSpeedNumerator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR);
+  maxBlockSizeGrowthSpeedDenominator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR);
+
+  lockedTxAllowedDeltaSeconds(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS);
+  lockedTxAllowedDeltaBlocks(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
+
+  mempoolTxLiveTime(parameters::CRYPTONOTE_MEMPOOL_TX_LIVETIME);
+  mempoolTxFromAltBlockLiveTime(parameters::CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME);
+  numberOfPeriodsToForgetTxDeletedFromPool(parameters::CRYPTONOTE_NUMBER_OF_PERIODS_TO_FORGET_TX_DELETED_FROM_POOL);
+
+  fusionTxMaxSize(parameters::FUSION_TX_MAX_SIZE);
+  fusionTxMinInputCount(parameters::FUSION_TX_MIN_INPUT_COUNT);
+  fusionTxMinInOutCountRatio(parameters::FUSION_TX_MIN_IN_OUT_COUNT_RATIO);
+
+  blocksFileName(parameters::CRYPTONOTE_BLOCKS_FILENAME);
+  blocksCacheFileName(parameters::CRYPTONOTE_BLOCKSCACHE_FILENAME);
+  blockIndexesFileName(parameters::CRYPTONOTE_BLOCKINDEXES_FILENAME);
+  txPoolFileName(parameters::CRYPTONOTE_POOLDATA_FILENAME);
+  blockchinIndicesFileName(parameters::CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME);
+
+  testnet(false);
+}
+
 CurrencyBuilder& CurrencyBuilder::emissionSpeedFactor(unsigned int val) {
   if (val <= 0 || val > 8 * sizeof(uint64_t)) {
     throw std::invalid_argument("val at emissionSpeedFactor()");
