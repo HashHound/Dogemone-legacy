@@ -9,6 +9,7 @@
 #include <string>
 
 namespace CryptoNote {
+  const std::string DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
 namespace parameters {
 
 const uint64_t CRYPTONOTE_MAX_BLOCK_NUMBER                   = 500000000;
@@ -54,8 +55,6 @@ const uint64_t CRYPTONOTE_NUMBER_OF_PERIODS_TO_FORGET_TX_DELETED_FROM_POOL = 7; 
 const size_t   FUSION_TX_MAX_SIZE                            = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE * 30 / 100;
 const size_t   FUSION_TX_MIN_INPUT_COUNT                     = 12;
 const size_t   FUSION_TX_MIN_IN_OUT_COUNT_RATIO              = 4;
-const std::string GENESIS_DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
-const uint64_t GENESIS_BLOCK_REWARD = 30000000000 * 1000000000; // 30 million coins in atomic units
 
 const char     CRYPTONOTE_BLOCKS_FILENAME[]                  = "blocks.dat";
 const char     CRYPTONOTE_BLOCKINDEXES_FILENAME[]            = "blockindexes.dat";

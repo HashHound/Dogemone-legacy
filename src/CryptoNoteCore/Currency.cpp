@@ -72,14 +72,18 @@ bool Currency::init() {
 bool Currency::generateGenesisBlock() {
   m_genesisBlock = boost::value_initialized<Block>();
 
-  Transaction genesisTransaction;
-  if (!constructGenesisTransaction(genesisTransaction)) {
-    logger(ERROR, BRIGHT_RED) << "Failed to construct genesis transaction";
+  // Hard code coinbase tx in genesis block, because "tru" generating tx use random, but genesis should be always the same
+  std::string genesisCoinbaseTxHex = GENESIS_COINBASE_TX_HEX;
+  BinaryArray minerTxBlob;
+
+  bool r =
+    fromHex(genesisCoinbaseTxHex, minerTxBlob) &&
+    fromBinaryArray(m_genesisBlock.baseTransaction, minerTxBlob);
+
+  if (!r) {
+    logger(ERROR, BRIGHT_RED) << "failed to parse coinbase tx from hard coded blob";
     return false;
   }
-
-  BinaryArray minerTxBlob = toBinaryArray(genesisTransaction);
-  m_genesisBlock.baseTransaction = genesisTransaction;
 
   m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
   m_genesisBlock.minorVersion = BLOCK_MINOR_VERSION_0;
@@ -89,57 +93,6 @@ bool Currency::generateGenesisBlock() {
     ++m_genesisBlock.nonce;
   }
   //miner::find_nonce_for_given_block(bl, 1, 0);
-
-  return true;
-}
-
-bool Currency::constructGenesisTransaction(Transaction& tx) const {
-  tx.inputs.clear();
-  tx.outputs.clear();
-  tx.extra.clear();
-
-  KeyPair txkey = generateKeyPair();
-  addTransactionPublicKeyToExtra(tx.extra, txkey.publicKey);
-
-  BaseInput in;
-  in.blockIndex = 0;
-  tx.inputs.push_back(in);
-
-  // Parse the developer address
-  AccountPublicAddress devAddress;
-  bool parseSuccess = parseAccountAddressString(parameters::GENESIS_DEVELOPER_ADDRESS, devAddress);
-  if (!parseSuccess) {
-    logger(ERROR, BRIGHT_RED) << "Failed to parse developer address";
-    return false;
-  }
-
-  // Generate key derivation
-  Crypto::KeyDerivation derivation;
-  bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, derivation);
-  if (!keyDerivationSuccess) {
-    logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
-    return false;
-  }
-
-  // Derive the public key
-  Crypto::PublicKey outEphemeralPubKey;
-  bool derivePubKeySuccess = Crypto::derive_public_key(derivation, 0, devAddress.spendPublicKey, outEphemeralPubKey);
-  if (!derivePubKeySuccess) {
-    logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
-    return false;
-  }
-
-  // Create the transaction output
-  KeyOutput tk;
-  tk.key = outEphemeralPubKey;
-
-  TransactionOutput out;
-  out.amount = parameters::GENESIS_BLOCK_REWARD;
-  out.target = tk;
-  tx.outputs.push_back(out);
-
-  tx.version = CURRENT_TRANSACTION_VERSION;
-  tx.unlockTime = 0;
 
   return true;
 }
@@ -199,11 +152,13 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     return false;
   }
 
-  uint64_t minerReward = blockReward + fee; // Adding the fee to the block reward
+  // Calculate dev fee (10% of base reward + fee)
+  uint64_t devFee = static_cast<uint64_t>(blockReward * 0.10) + fee;
+  uint64_t minerReward = blockReward - devFee; // Subtracting the dev fee from the block reward
 
-  logger(INFO) << "Block reward: " << blockReward << ", Miner reward: " << minerReward << ", Fee: " << fee;
+  logger(INFO) << "Block reward: " << blockReward << ", Dev fee: " << devFee << ", Miner reward: " << minerReward << ", Fee: " << fee;
 
-  // Decompose amounts for miner
+  // Decompose amounts for miner and dev fee
   std::vector<uint64_t> outAmounts;
   decompose_amount_into_digits(minerReward, m_defaultDustThreshold,
     [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
@@ -249,9 +204,44 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     tx.outputs.push_back(out);
   }
 
-  // Ensure summary amounts match block reward + fee
-  if (summaryAmounts != minerReward) {
-    logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal minerReward = " << minerReward;
+  // Add developer fee output
+  AccountPublicAddress devAddress;
+  bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
+  logger(INFO) << "Parse developer address: " << (parseSuccess ? "success" : "failure");
+  if (!parseSuccess) {
+    logger(ERROR, BRIGHT_RED) << "Failed to parse developer address";
+    return false;
+  }
+
+  Crypto::KeyDerivation devDerivation;
+  bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, devDerivation);
+  logger(INFO) << "Key derivation for developer address: " << (keyDerivationSuccess ? "success" : "failure");
+  if (!keyDerivationSuccess) {
+    logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
+    return false;
+  }
+
+  Crypto::PublicKey devOutEphemeralPubKey;
+  bool derivePubKeySuccess = Crypto::derive_public_key(devDerivation, 0, devAddress.spendPublicKey, devOutEphemeralPubKey);
+  logger(INFO) << "Public key derivation for developer address: " << (derivePubKeySuccess ? "success" : "failure");
+  if (!derivePubKeySuccess) {
+    logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
+    return false;
+  }
+
+  KeyOutput devTk;
+  devTk.key = devOutEphemeralPubKey;
+
+  TransactionOutput devOut;
+  devOut.amount = devFee;
+  devOut.target = devTk;
+  tx.outputs.push_back(devOut);
+
+  summaryAmounts += devFee;
+
+  // Ensure summary amounts match block reward
+  if (summaryAmounts != blockReward) {
+    logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
     return false;
   }
 
@@ -545,61 +535,10 @@ CurrencyBuilder::CurrencyBuilder(Logging::ILogger& log) : m_currency(log) {
 
 Transaction CurrencyBuilder::generateGenesisTransaction() {
   CryptoNote::Transaction tx;
-  if (!m_currency.constructGenesisTransaction(tx)) {
-    throw std::runtime_error("Failed to construct genesis transaction");
-  }
+  CryptoNote::AccountPublicAddress ac = boost::value_initialized<CryptoNote::AccountPublicAddress>();
+  m_currency.constructMinerTx(0, 0, 0, 0, 0, ac, tx); // zero fee in genesis
+
   return tx;
-}
-
-CurrencyBuilder::CurrencyBuilder(Logging::ILogger& log) : m_currency(log) {
-  maxBlockNumber(parameters::CRYPTONOTE_MAX_BLOCK_NUMBER);
-  maxBlockBlobSize(parameters::CRYPTONOTE_MAX_BLOCK_BLOB_SIZE);
-  maxTxSize(parameters::CRYPTONOTE_MAX_TX_SIZE);
-  publicAddressBase58Prefix(parameters::CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX);
-  minedMoneyUnlockWindow(parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW);
-
-  timestampCheckWindow(parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW);
-  blockFutureTimeLimit(parameters::CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT);
-
-  moneySupply(parameters::MONEY_SUPPLY);
-  emissionSpeedFactor(parameters::EMISSION_SPEED_FACTOR);
-
-  rewardBlocksWindow(parameters::CRYPTONOTE_REWARD_BLOCKS_WINDOW);
-  blockGrantedFullRewardZone(parameters::CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE);
-  minerTxBlobReservedSize(parameters::CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE);
-
-  numberOfDecimalPlaces(parameters::CRYPTONOTE_DISPLAY_DECIMAL_POINT);
-
-  mininumFee(parameters::MINIMUM_FEE);
-  defaultDustThreshold(parameters::DEFAULT_DUST_THRESHOLD);
-
-  difficultyTarget(parameters::DIFFICULTY_TARGET);
-  difficultyWindow(parameters::DIFFICULTY_WINDOW);
-  difficultyLag(parameters::DIFFICULTY_LAG);
-  difficultyCut(parameters::DIFFICULTY_CUT);
-
-  maxBlockSizeInitial(parameters::MAX_BLOCK_SIZE_INITIAL);
-  maxBlockSizeGrowthSpeedNumerator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_NUMERATOR);
-  maxBlockSizeGrowthSpeedDenominator(parameters::MAX_BLOCK_SIZE_GROWTH_SPEED_DENOMINATOR);
-
-  lockedTxAllowedDeltaSeconds(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_SECONDS);
-  lockedTxAllowedDeltaBlocks(parameters::CRYPTONOTE_LOCKED_TX_ALLOWED_DELTA_BLOCKS);
-
-  mempoolTxLiveTime(parameters::CRYPTONOTE_MEMPOOL_TX_LIVETIME);
-  mempoolTxFromAltBlockLiveTime(parameters::CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME);
-  numberOfPeriodsToForgetTxDeletedFromPool(parameters::CRYPTONOTE_NUMBER_OF_PERIODS_TO_FORGET_TX_DELETED_FROM_POOL);
-
-  fusionTxMaxSize(parameters::FUSION_TX_MAX_SIZE);
-  fusionTxMinInputCount(parameters::FUSION_TX_MIN_INPUT_COUNT);
-  fusionTxMinInOutCountRatio(parameters::FUSION_TX_MIN_IN_OUT_COUNT_RATIO);
-
-  blocksFileName(parameters::CRYPTONOTE_BLOCKS_FILENAME);
-  blocksCacheFileName(parameters::CRYPTONOTE_BLOCKSCACHE_FILENAME);
-  blockIndexesFileName(parameters::CRYPTONOTE_BLOCKINDEXES_FILENAME);
-  txPoolFileName(parameters::CRYPTONOTE_POOLDATA_FILENAME);
-  blockchinIndicesFileName(parameters::CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME);
-
-  testnet(false);
 }
 
 CurrencyBuilder& CurrencyBuilder::emissionSpeedFactor(unsigned int val) {
