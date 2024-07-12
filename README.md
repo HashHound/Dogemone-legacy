@@ -7,7 +7,7 @@ Dogemone is a cutting-edge privacy coin built on the robust Cryptonote protocol,
 - **Controlled Supply**: Capped at 300 million coins with a fair emission curve.
 - **Efficient Mining**: Cryptonight algorithm ensures equitable mining opportunities.
 - **No Premine**: 100% fair launch with no premine.
-- **Developer Fee**: 10% of the block reward is allocated to development, taken slowly over time.
+- **Developer Fee**: Every tenth block is allocated to development wallet, this block is called developer block, the whole block reward goes to the dev address, this method is much more fair than a premine because it is taken slowly over time.
 - **Difficulty Adjustment**: Adaptive difficulty adjustment every 120 seconds for network stability.
 - **Decentralized Network**: Promotes decentralization and security.
 
@@ -29,6 +29,12 @@ You may download them from:
 
 To build, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
 
+```
+mkdir build
+cd build
+cmake -DSTATIC=ON .. && make -j4
+```
+
 **Advanced options:**
 
 * Parallel build: run `make -j<number of threads>` instead of `make`.
@@ -47,7 +53,8 @@ To build, change to a directory where this file is located, and run theas comman
 ```
 mkdir build
 cd build
-cmake -G "Visual Studio 12 Win64" ..
+cmake -G "Visual Studio 16 2019" -A x64 .. -DBOOST_ROOT=B:/local/boost_1_71_0/lib64-msvc-14.2
+MSBuild CryptoNote.sln /p:Configuration=Release /p:PlatformToolset=v142 /m
 ```
 
 And then do Build.
