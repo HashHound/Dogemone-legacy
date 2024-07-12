@@ -78,6 +78,7 @@ bool Currency::generateGenesisBlock() {
     return false;
   }
 
+  BinaryArray minerTxBlob = toBinaryArray(genesisTransaction);
   m_genesisBlock.baseTransaction = genesisTransaction;
 
   m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
@@ -147,13 +148,6 @@ bool Currency::getBlockReward(size_t medianSize, size_t currentBlockSize, uint64
   uint64_t fee, uint64_t& reward, int64_t& emissionChange) const {
   assert(alreadyGeneratedCoins <= m_moneySupply);
   assert(m_emissionSpeedFactor > 0 && m_emissionSpeedFactor <= 8 * sizeof(uint64_t));
-
-  // Check if it's the genesis block
-  if (alreadyGeneratedCoins == 0) {
-    reward = parameters::GENESIS_BLOCK_REWARD;
-    emissionChange = reward;
-    return true;
-  }
 
   uint64_t baseReward = (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
 
