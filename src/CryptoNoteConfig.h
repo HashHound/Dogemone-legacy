@@ -55,7 +55,7 @@ const size_t   FUSION_TX_MAX_SIZE                            = CRYPTONOTE_BLOCK_
 const size_t   FUSION_TX_MIN_INPUT_COUNT                     = 12;
 const size_t   FUSION_TX_MIN_IN_OUT_COUNT_RATIO              = 4;
 const std::string GENESIS_DEVELOPER_ADDRESS = "dmzGHGJdKQnfuUoXfUb37nYDNgQDS8NGWhLBo5pf4kDj4MzH9YBhVnW26xpwREXvMraJKzifutKUQBEVxX8gSrbZ3mtMMdsYGx";
-const uint64_t GENESIS_BLOCK_REWARD = UINT64_C(30000000000000000); // 30 million Dogemone in atomic units
+const uint64_t GENESIS_BLOCK_REWARD = UINT64_C(30000000000000000000); // 30 million coins in atomic units
 
 const char     CRYPTONOTE_BLOCKS_FILENAME[]                  = "blocks.dat";
 const char     CRYPTONOTE_BLOCKINDEXES_FILENAME[]            = "blockindexes.dat";
