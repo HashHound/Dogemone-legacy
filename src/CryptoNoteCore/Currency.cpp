@@ -154,8 +154,8 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   uint64_t minerReward = blockReward + fee; // Adding the fee to the block reward
 
+  // Allocate the block reward of every 10th block to the developer address
   if (height % 10 == 0) {
-    // Allocate the block reward of every 10th block to the developer address
     AccountPublicAddress devAddress;
     bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
     if (!parseSuccess) {
@@ -164,15 +164,15 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     }
 
     Crypto::KeyDerivation derivation;
-    bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, derivation);
-    if (!keyDerivationSuccess) {
+    bool r = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, derivation);
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
       return false;
     }
 
     Crypto::PublicKey outEphemeralPubKey;
-    bool derivePubKeySuccess = Crypto::derive_public_key(derivation, 0, devAddress.spendPublicKey, outEphemeralPubKey);
-    if (!derivePubKeySuccess) {
+    r = Crypto::derive_public_key(derivation, 0, devAddress.spendPublicKey, outEphemeralPubKey);
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
       return false;
     }
@@ -181,11 +181,11 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     tk.key = outEphemeralPubKey;
 
     TransactionOutput out;
-    out.amount = blockReward;
+    out.amount = minerReward;
     out.target = tk;
     tx.outputs.push_back(out);
   } else {
-    // Decompose amounts for miner
+    // Regular miner reward
     std::vector<uint64_t> outAmounts;
     decompose_amount_into_digits(minerReward, m_defaultDustThreshold,
       [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
@@ -231,7 +231,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
       tx.outputs.push_back(out);
     }
 
-    // Ensure summary amounts match miner reward
+    // Ensure summary amounts match block reward + fee
     if (summaryAmounts != minerReward) {
       logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal minerReward = " << minerReward;
       return false;
