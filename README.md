@@ -1,4 +1,4 @@
-## **Dogemone: The Future of Privacy Coins**
+## **Dogemone(DME): The Future of Privacy Coins**
 
 Dogemone is a cutting-edge privacy coin built on the robust Cryptonote protocol, ensuring unparalleled transaction confidentiality and security. With a maximum supply of 300 million, Dogemone follows a meticulously designed emission curve, providing a predictable and fair distribution over time. The coin leverages the Cryptonight algorithm, known for its ASIC resistance and efficiency in CPU and GPU mining, promoting decentralization. Dogemone is committed to protecting your financial privacy while maintaining a secure and decentralized network, making it a standout choice in the realm of cryptocurrency. Join us in shaping a future where privacy and security are paramount.
 
