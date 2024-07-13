@@ -91,6 +91,31 @@ main {
   margin-top: 0;
 }
 
+.details-list {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  margin: 0 auto;
+  max-width: 800px;
+}
+
+.details-list li {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.socials-list {
+  list-style: none;
+  padding: 0;
+  text-align: center;
+}
+
+.socials-list li {
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 1.1rem;
+}
+
 .btn {
   display: inline-block;
   padding: 10px 20px;
@@ -170,6 +195,19 @@ footer {
     padding: 15px;
   }
 
+  .details-list {
+    padding: 0 20px;
+  }
+
+  .details-list li {
+    font-size: 1rem;
+  }
+
+  .socials-list li {
+    margin-right: 5px;
+    font-size: 1rem;
+  }
+
   .roadmap {
     padding: 0 20px;
   }
@@ -210,6 +248,18 @@ footer {
 
   .feature {
     padding: 10px;
+  }
+
+  .details-list {
+    padding: 0 10px;
+  }
+
+  .details-list li {
+    font-size: 0.9rem;
+  }
+
+  .socials-list li {
+    font-size: 0.9rem;
   }
 
   .roadmap {
