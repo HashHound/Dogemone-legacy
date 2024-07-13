@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2016 The Cryptonote developers
+// Copyright (c) 2011-2024 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -33,6 +33,7 @@
 #include "WalletLegacy/WalletLegacy.h"
 #include "Wallet/LegacyKeysImporter.h"
 #include "WalletLegacy/WalletHelper.h"
+#include "mnemonic.h" // Add a library for mnemonic handling
 
 #include "version.h"
 
@@ -304,7 +305,7 @@ std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<
       } else { // no keys, wallet error loading
         throw std::runtime_error("can't load wallet file '" + walletFileName + "', check password");
       }
-    } else { //new wallet ok 
+    } else { //new wallet ok
       return walletFileName;
     }
   } else if (keysExists) { //wallet not exists but keys presented
@@ -446,16 +447,17 @@ bool simple_wallet::exit(const std::vector<std::string> &args) {
 
 simple_wallet::simple_wallet(System::Dispatcher& dispatcher, const CryptoNote::Currency& currency, Logging::LoggerManager& log) :
   m_dispatcher(dispatcher),
-  m_daemon_port(0), 
-  m_currency(currency), 
+  m_daemon_port(0),
+  m_currency(currency),
   logManager(log),
   logger(log, "simplewallet"),
-  m_refresh_progress_reporter(*this), 
+  m_refresh_progress_reporter(*this),
   m_initResultPromise(nullptr),
   m_walletSynchronized(false) {
   m_consoleHandler.setHandler("start_mining", boost::bind(&simple_wallet::start_mining, this, _1), "start_mining [<number_of_threads>] - Start mining in daemon");
   m_consoleHandler.setHandler("stop_mining", boost::bind(&simple_wallet::stop_mining, this, _1), "Stop mining in daemon");
   //m_consoleHandler.setHandler("refresh", boost::bind(&simple_wallet::refresh, this, _1), "Resynchronize transactions and balance");
+  m_consoleHandler.setHandler("restore_wallet", boost::bind(&simple_wallet::restore_wallet_command, this, _1), "restore_wallet <file> <mnemonic> - Restore wallet from mnemonic seed");
   m_consoleHandler.setHandler("balance", boost::bind(&simple_wallet::show_balance, this, _1), "Show current wallet balance");
   m_consoleHandler.setHandler("incoming_transfers", boost::bind(&simple_wallet::show_incoming_transfers, this, _1), "Show incoming transfers");
   m_consoleHandler.setHandler("list_transfers", boost::bind(&simple_wallet::listTransfers, this, _1), "Show all known transfers");
@@ -484,7 +486,7 @@ bool simple_wallet::set_log(const std::vector<std::string> &args) {
     fail_msg_writer() << "wrong number format, use: set_log <log_level_number_0-4>";
     return true;
   }
- 
+
   if (l > Logging::TRACE) {
     fail_msg_writer() << "wrong number range, use: set_log <log_level_number_0-4>";
     return true;
@@ -555,7 +557,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     m_daemon_host = "localhost";
   if (!m_daemon_port)
     m_daemon_port = RPC_DEFAULT_PORT;
-  
+
   if (!m_daemon_address.empty()) {
     if (!parseUrlAddress(m_daemon_address, m_daemon_host, m_daemon_port)) {
       fail_msg_writer() << "failed to parse daemon address: " << m_daemon_address;
@@ -673,6 +675,10 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
     AccountKeys keys;
     m_wallet->getAccountKeys(keys);
 
+    // Generate mnemonic seed from the private keys
+    std::string mnemonic = generate_mnemonic(keys.spendSecretKey);
+    success_msg_writer() << "Your recovery seed is: " << mnemonic;
+
     logger(INFO, BRIGHT_WHITE) <<
       "Generated new wallet: " << m_wallet->getAddress() << std::endl <<
       "view key: " << Common::podToHex(keys.viewSecretKey);
@@ -691,6 +697,57 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
     "your wallet again. Your wallet key is NOT under risk anyway.\n" <<
     "**********************************************************************";
   return true;
+}
+
+bool simple_wallet::restore_wallet(const std::string &wallet_file, const std::string& mnemonic, const std::string& password) {
+  m_wallet_file = wallet_file;
+
+  Crypto::SecretKey spendSecretKey;
+  if (!parse_mnemonic(mnemonic, spendSecretKey)) {
+    fail_msg_writer() << "Invalid mnemonic seed";
+    return false;
+  }
+
+  m_wallet.reset(new WalletLegacy(m_currency, *m_node.get()));
+  m_node->addObserver(static_cast<INodeObserver*>(this));
+  m_wallet->addObserver(this);
+
+  AccountKeys keys;
+  keys.spendSecretKey = spendSecretKey;
+  Crypto::secret_key_to_public_key(keys.spendSecretKey, keys.spendPublicKey);
+  m_wallet->initWithKeys(keys, password);
+
+  try {
+    CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
+  } catch (std::exception& e) {
+    fail_msg_writer() << "failed to save restored wallet: " << e.what();
+    throw;
+  }
+
+  success_msg_writer() <<
+    "**********************************************************************\n" <<
+    "Your wallet has been restored.\n" <<
+    "Use \"help\" command to see the list of available commands.\n" <<
+    "**********************************************************************";
+  return true;
+}
+
+bool simple_wallet::restore_wallet_command(const std::vector<std::string> &args) {
+  if (args.size() < 2) {
+    fail_msg_writer() << "Usage: restore_wallet <file> <mnemonic>";
+    return false;
+  }
+
+  std::string wallet_file = args[0];
+  std::string mnemonic = args[1];
+
+  Tools::PasswordContainer pwd_container;
+  if (!pwd_container.read_password()) {
+    fail_msg_writer() << "failed to read wallet password";
+    return false;
+  }
+
+  return restore_wallet(wallet_file, mnemonic, pwd_container.password());
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::close_wallet()
@@ -826,7 +883,7 @@ void simple_wallet::connectionStatusUpdated(bool connected) {
 void simple_wallet::externalTransactionCreated(CryptoNote::TransactionId transactionId)  {
   WalletLegacyTransaction txInfo;
   m_wallet->getTransaction(transactionId, txInfo);
-  
+
   std::stringstream logPrefix;
   if (txInfo.blockHeight == WALLET_LEGACY_UNCONFIRMED_TRANSACTION_HEIGHT) {
     logPrefix << "Unconfirmed";
@@ -1198,7 +1255,7 @@ int main(int argc, char* argv[]) {
     logger(INFO) << "Starting wallet rpc server";
     wrpc.run();
     logger(INFO) << "Stopped wallet rpc server";
-    
+
     try {
       logger(INFO) << "Storing wallet...";
       CryptoNote::WalletHelper::storeWallet(*wallet, walletFileName);
@@ -1210,10 +1267,10 @@ int main(int argc, char* argv[]) {
   } else {
     //runs wallet with console interface
     CryptoNote::simple_wallet wal(dispatcher, currency, logManager);
-    
+
     if (!wal.init(vm)) {
-      logger(ERROR, BRIGHT_RED) << "Failed to initialize wallet"; 
-      return 1; 
+      logger(ERROR, BRIGHT_RED) << "Failed to initialize wallet";
+      return 1;
     }
 
     std::vector<std::string> command = command_line::get_arg(vm, arg_command);
@@ -1223,7 +1280,7 @@ int main(int argc, char* argv[]) {
     Tools::SignalHandler::install([&wal] {
       wal.stop();
     });
-    
+
     wal.run();
 
     if (!wal.deinit()) {
