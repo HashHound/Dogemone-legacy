@@ -1,6 +1,6 @@
 Release notes 1.1.1
 
-- New API for CryptoNote RPC Wallet
+- New API for Dogemone RPC Wallet
 
 Release notes 1.1.0
 
@@ -98,4 +98,4 @@ Release notes 0.8.2
 
 Release notes 0.8.1
 
-Bytecoin project is moved to GitHub
+Dogemone project is moved to GitHub
