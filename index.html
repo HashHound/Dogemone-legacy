@@ -9,83 +9,97 @@
 </head>
 <body>
   <header>
-    <img src="Dogemone.jpeg" alt="Dogemone Logo" class="logo">
-    <h1>Dogemone</h1>
-    <nav>
-      <ul>
-        <li><a href="#about">About</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#community">Community</a></li>
-        <li><a href="#contact">Contact</a></li>
-        <li><a href="#how-to-mine">How to Mine</a></li>
-      </ul>
-    </nav>
+    <div class="container">
+      <img src="Dogemone.jpeg" alt="Dogemone Logo" class="logo">
+      <h1>Dogemone</h1>
+      <nav>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#community">Community</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#how-to-mine">How to Mine</a></li>
+        </ul>
+      </nav>
+    </div>
   </header>
 
   <main>
-    <section id="about">
-      <h2>About Dogemone</h2>
-      <p>Dogemone is a decentralized, privacy-focused cryptocurrency built on the CryptoNote protocol. Our mission is to provide high levels of security, privacy, and decentralization to users around the globe.</p>
+    <section id="about" class="section">
+      <div class="container">
+        <h2>About Dogemone</h2>
+        <p>Dogemone is a decentralized, privacy-focused cryptocurrency built on the CryptoNote protocol. Our mission is to provide high levels of security, privacy, and decentralization to users around the globe.</p>
+      </div>
     </section>
 
-    <section id="features">
-      <h2>Features</h2>
-      <div class="features-grid">
-        <div class="feature">
-          <h3>Privacy</h3>
-          <p>Utilizes ring signatures and stealth addresses to obfuscate transaction details, ensuring user privacy.</p>
-        </div>
-        <div class="feature">
-          <h3>Security</h3>
-          <p>Based on the robust CryptoNote protocol, providing secure and reliable transactions.</p>
-        </div>
-        <div class="feature">
-          <h3>Decentralization</h3>
-          <p>Fully decentralized network with no central authority.</p>
-        </div>
-        <div class="feature">
-          <h3>Mining Algorithm</h3>
-          <p>Uses the CryptoNight algorithm for proof-of-work mining.</p>
-        </div>
-        <div class="feature">
-          <h3>Community-Driven</h3>
-          <p>We are an open-source project. Anyone can contribute.</p>
-        </div>
-        <div class="feature">
-          <h3>No Block Explorer</h3>
-          <p>To follow the original design of the CryptoNote protocol, Dogemone does not have a block explorer.</p>
+    <section id="features" class="section">
+      <div class="container">
+        <h2>Features</h2>
+        <div class="features-grid">
+          <div class="feature">
+            <h3>Privacy</h3>
+            <p>Utilizes ring signatures and stealth addresses to obfuscate transaction details, ensuring user privacy.</p>
+          </div>
+          <div class="feature">
+            <h3>Security</h3>
+            <p>Based on the robust CryptoNote protocol, providing secure and reliable transactions.</p>
+          </div>
+          <div class="feature">
+            <h3>Decentralization</h3>
+            <p>Fully decentralized network with no central authority.</p>
+          </div>
+          <div class="feature">
+            <h3>Mining Algorithm</h3>
+            <p>Uses the CryptoNight algorithm for proof-of-work mining.</p>
+          </div>
+          <div class="feature">
+            <h3>Community-Driven</h3>
+            <p>We are an open-source project. Anyone can contribute.</p>
+          </div>
+          <div class="feature">
+            <h3>No Block Explorer</h3>
+            <p>To follow the original design of the CryptoNote protocol, Dogemone does not have a block explorer.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="how-to-mine">
-      <h2>How to Mine Dogemone</h2>
-      <p>Follow these steps to start mining Dogemone:</p>
-      <ol>
-        <li><strong>Download the Wallet:</strong> Get the latest version of the Dogemone wallet from our <a href="https://github.com/hashhound/dogemone/releases">releases page</a>.</li>
-        <li><strong>Generate an Address:</strong> Use the simplewallet to generate a new wallet address.</li>
-        <li><strong>Run a Node:</strong> Start the Dogemone daemon to connect to the network. Use the seed nodes listed in the configuration file to join the network.</li>
-        <li><strong>Start Mining:</strong> Download the miner from our <a href="https://github.com/hashhound/dogemone/releases">releases page</a>. Use the following command to start mining:
-          <pre><code>./miner --daemon-address <YOUR_DAEMON_ADDRESS> --wallet-address <YOUR_WALLET_ADDRESS></code></pre>
-        </li>
-      </ol>
+    <section id="how-to-mine" class="section">
+      <div class="container">
+        <h2>How to Mine Dogemone</h2>
+        <p>Follow these steps to start mining Dogemone:</p>
+        <ol>
+          <li><strong>Download the Wallet:</strong> Get the latest version of the Dogemone wallet from our <a href="https://github.com/hashhound/dogemone/releases">releases page</a>.</li>
+          <li><strong>Generate an Address:</strong> Use the simplewallet to generate a new wallet address.</li>
+          <li><strong>Run a Node:</strong> Start the Dogemone daemon to connect to the network. Use the seed nodes listed in the configuration file to join the network.</li>
+          <li><strong>Start Mining:</strong> Download the miner from our <a href="https://github.com/hashhound/dogemone/releases">releases page</a>. Use the following command to start mining:
+            <pre><code>./miner --daemon-address <YOUR_DAEMON_ADDRESS> --wallet-address <YOUR_WALLET_ADDRESS></code></pre>
+          </li>
+        </ol>
+      </div>
     </section>
 
-    <section id="community">
-      <h2>Join the Community</h2>
-      <p>Connect with us and other Dogemone enthusiasts on our Discord server and social media platforms.</p>
-      <a href="https://discord.gg/your-discord-link" class="btn">Join Discord</a>
-      <p>Follow us on <a href="https://x.com/ProjectDogemone">Twitter</a> for updates.</p>
+    <section id="community" class="section">
+      <div class="container">
+        <h2>Join the Community</h2>
+        <p>Connect with us and other Dogemone enthusiasts on our Discord server and social media platforms.</p>
+        <a href="https://discord.gg/your-discord-link" class="btn">Join Discord</a>
+        <p>Follow us on <a href="https://x.com/ProjectDogemone">Twitter</a> for updates.</p>
+      </div>
     </section>
 
-    <section id="contact">
-      <h2>Contact Us</h2>
-      <p>Report any issues or bugs on our <a href="https://github.com/hashhound/dogemone/issues">GitHub Issues page</a>.</p>
+    <section id="contact" class="section">
+      <div class="container">
+        <h2>Contact Us</h2>
+        <p>Report any issues or bugs on our <a href="https://github.com/hashhound/dogemone/issues">GitHub Issues page</a>.</p>
+      </div>
     </section>
   </main>
 
   <footer>
-    <p>&copy; 2024 Dogemone Project. All rights reserved.</p>
+    <div class="container">
+      <p>&copy; 2024 Dogemone Project. All rights reserved.</p>
+    </div>
   </footer>
   <script src="script.js"></script>
 </body>
