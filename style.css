@@ -125,3 +125,102 @@ footer {
   text-align: center;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 20px;
+  }
+
+  nav ul {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  nav ul li {
+    width: 100%;
+  }
+
+  nav ul li a {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+  }
+
+  .section {
+    padding: 40px 20px;
+  }
+
+  .section h2 {
+    font-size: 2rem;
+  }
+
+  .section p {
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    padding: 15px;
+  }
+
+  .roadmap {
+    padding: 0 20px;
+  }
+
+  .roadmap li {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 5px 10px;
+  }
+
+  nav ul {
+    gap: 5px;
+  }
+
+  nav ul li a {
+    padding: 5px 10px;
+  }
+
+  .section {
+    padding: 30px 10px;
+  }
+
+  .section h2 {
+    font-size: 1.8rem;
+  }
+
+  .section p {
+    font-size: 0.9rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    padding: 10px;
+  }
+
+  .roadmap {
+    padding: 0 10px;
+  }
+
+  .roadmap li {
+    font-size: 0.9rem;
+  }
+
+  .btn {
+    padding: 8px 16px;
+  }
+}
