@@ -136,7 +136,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   KeyPair txkey = generateKeyPair();
   addTransactionPublicKeyToExtra(tx.extra, txkey.publicKey);
-  if (!extraNonce.empty()) {
+  if (!extraNonce.empty() && extraNonce.size() <= 255) { // Ensure extraNonce size is within limit
     if (!addExtraNonceToTransactionExtra(tx.extra, extraNonce)) {
       return false;
     }
@@ -154,8 +154,8 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   uint64_t minerReward = blockReward + fee; // Adding the fee to the block reward
 
-  // Allocate the block reward of every 10th block to the developer address
   if (height % 10 == 0) {
+    // Allocate the block reward of every 10th block to the developer address
     AccountPublicAddress devAddress;
     bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
     if (!parseSuccess) {
