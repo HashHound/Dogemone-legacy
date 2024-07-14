@@ -31,5 +31,3 @@ tags:
 	ctags -R --sort=1 --c++-kinds=+p --fields=+iaS --extra=+q --language-force=C++ src contrib tests/gtest
 
 .PHONY: all cmake-debug build-debug test-debug all-debug cmake-release build-release test-release all-release clean tags
-
-//depereciated

@@ -1,6 +1,19 @@
-// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
+//
+// This file is part of Bytecoin.
+//
+// Bytecoin is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Bytecoin is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -131,6 +144,8 @@ namespace CryptoNote
     size_t get_outgoing_connections_count();
 
     CryptoNote::PeerlistManager& getPeerlistManager() { return m_peerlist; }
+    std::vector<NetworkAddress> get_seed_nodes(){return m_seed_nodes;}
+    boost::uuids::uuid get_network_id(){return m_network_id;}
 
   private:
 
@@ -163,10 +178,14 @@ namespace CryptoNote
     //----------------- i_p2p_endpoint -------------------------------------------------------------
     virtual void relay_notify_to_all(int command, const BinaryArray& data_buff, const net_connection_id* excludeConnection) override;
     virtual bool invoke_notify_to_peer(int command, const BinaryArray& req_buff, const CryptoNoteConnectionContext& context) override;
+    virtual void drop_connection(CryptoNoteConnectionContext& context, bool add_fail) override;
     virtual void for_each_connection(std::function<void(CryptoNote::CryptoNoteConnectionContext&, PeerIdType)> f) override;
     virtual void externalRelayNotifyToAll(int command, const BinaryArray& data_buff) override;
 
     //-----------------------------------------------------------------------------------------------
+bool block_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME);
+bool unblock_host(const uint32_t address_ip);
+bool add_host_fail(const uint32_t address_ip);
     bool handle_command_line(const boost::program_options::variables_map& vm);
     bool handleConfig(const NetNodeConfig& config);
     bool append_net_address(std::vector<NetworkAddress>& nodes, const std::string& addr);
@@ -204,6 +223,9 @@ namespace CryptoNote
     void onIdle();
     void timedSyncLoop();
     void timeoutLoop();
+    
+    template<typename T>
+    void safeInterrupt(T& obj);
 
     struct config
     {
@@ -256,5 +278,10 @@ namespace CryptoNote
     std::list<PeerlistEntry> m_command_line_peers;
     uint64_t m_peer_livetime;
     boost::uuids::uuid m_network_id;
+    std::string m_p2pStatTrustedPubKey;
+  std::map<uint32_t, time_t> m_blocked_hosts;
+  std::map<uint32_t, uint64_t> m_host_fails_score;
+
+  mutable std::mutex mutex;
   };
 }

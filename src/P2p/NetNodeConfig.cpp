@@ -1,6 +1,19 @@
-// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
+//
+// This file is part of Bytecoin.
+//
+// Bytecoin is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Bytecoin is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "NetNodeConfig.h"
 
@@ -24,6 +37,8 @@ const command_line::arg_descriptor<std::vector<std::string> > arg_p2p_add_priori
 const command_line::arg_descriptor<std::vector<std::string> > arg_p2p_add_exclusive_node   = {"add-exclusive-node", "Specify list of peers to connect to only."
       " If this option is given the options add-priority-node and seed-node are ignored"};
 const command_line::arg_descriptor<std::vector<std::string> > arg_p2p_seed_node   = {"seed-node", "Connect to a node to retrieve peer addresses, and disconnect"};
+const command_line::arg_descriptor<std::string> arg_network_id = {"BYTECOIN_NETWORK", "Network id", boost::lexical_cast<std::string>(BYTECOIN_NETWORK)};
+const command_line::arg_descriptor<std::string> arg_P2P_STAT_TRUSTED_PUB_KEY = {"P2P_STAT_TRUSTED_PUB_KEY", "P2P stat trusted pub key", ""};
 const command_line::arg_descriptor<bool> arg_p2p_hide_my_port   =    {"hide-my-port", "Do not announce yourself as peerlist candidate", false, true};
 
 bool parsePeerFromString(NetworkAddress& pe, const std::string& node_addr) {
@@ -58,6 +73,8 @@ void NetNodeConfig::initOptions(boost::program_options::options_description& des
   command_line::add_arg(desc, arg_p2p_add_exclusive_node);
   command_line::add_arg(desc, arg_p2p_seed_node);
   command_line::add_arg(desc, arg_p2p_hide_my_port);
+  command_line::add_arg(desc, arg_P2P_STAT_TRUSTED_PUB_KEY);
+  command_line::add_arg(desc, arg_network_id);
 }
 
 NetNodeConfig::NetNodeConfig() {
@@ -66,6 +83,7 @@ NetNodeConfig::NetNodeConfig() {
   externalPort = 0;
   allowLocalIp = false;
   hideMyPort = false;
+  p2pStatTrustedPubKey = "";
   configFolder = Tools::getDefaultDataDirectory();
   testnet = false;
 }
@@ -83,6 +101,15 @@ bool NetNodeConfig::init(const boost::program_options::variables_map& vm)
   if (vm.count(arg_p2p_external_port.name) != 0 && (!vm[arg_p2p_external_port.name].defaulted() || externalPort == 0)) {
     externalPort = command_line::get_arg(vm, arg_p2p_external_port);
   }
+
+
+//  if (vm.count(arg_P2P_STAT_TRUSTED_PUB_KEY.name) != 0 && (!vm[arg_P2P_STAT_TRUSTED_PUB_KEY.name].defaulted())) {
+    p2pStatTrustedPubKey = command_line::get_arg(vm, arg_P2P_STAT_TRUSTED_PUB_KEY);
+//  }
+
+//  if (vm.count(arg_network_id.name) != 0 && (!vm[arg_network_id.name].defaulted())) {
+    networkId = boost::lexical_cast<boost::uuids::uuid>(command_line::get_arg(vm, arg_network_id));
+//  }
 
   if (vm.count(arg_p2p_allow_local_ip.name) != 0 && (!vm[arg_p2p_allow_local_ip.name].defaulted() || !allowLocalIp)) {
     allowLocalIp = command_line::get_arg(vm, arg_p2p_allow_local_ip);
@@ -181,6 +208,14 @@ bool NetNodeConfig::getHideMyPort() const {
   return hideMyPort;
 }
 
+boost::uuids::uuid NetNodeConfig::getNetworkId() const {
+  return networkId;
+}
+
+std::string NetNodeConfig::getP2pStatTrustedPubKey() const {
+  return p2pStatTrustedPubKey;
+}
+
 std::string NetNodeConfig::getConfigFolder() const {
   return configFolder;
 }
@@ -223,6 +258,14 @@ void NetNodeConfig::setSeedNodes(const std::vector<NetworkAddress>& addresses) {
 
 void NetNodeConfig::setHideMyPort(bool hide) {
   hideMyPort = hide;
+}
+
+void NetNodeConfig::setNetworkId(boost::uuids::uuid id) {
+  networkId = id;
+}
+
+void NetNodeConfig::setP2pStatTrustedPubKey(std::string key) {
+  p2pStatTrustedPubKey = key;
 }
 
 void NetNodeConfig::setConfigFolder(const std::string& folder) {
