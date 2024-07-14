@@ -1,19 +1,6 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #pragma once
 
@@ -42,7 +29,9 @@ namespace CryptoNote
 {
   class Currency;
 
-  class CryptoNoteProtocolHandler : public ICryptoNoteProtocolHandler
+  class CryptoNoteProtocolHandler : 
+    public i_cryptonote_protocol, 
+    public ICryptoNoteProtocolQuery
   {
   public:
 
@@ -59,9 +48,10 @@ namespace CryptoNote
     // Interface t_payload_net_handler, where t_payload_net_handler is template argument of nodetool::node_server
     void stop();
     bool start_sync(CryptoNoteConnectionContext& context);
+    bool on_idle();
     void onConnectionOpened(CryptoNoteConnectionContext& context);
     void onConnectionClosed(CryptoNoteConnectionContext& context);
-    CoreStatistics getStatistics();
+    bool get_stat_info(core_stat_info& stat_inf);
     bool get_payload_sync_data(CORE_SYNC_DATA& hshd);
     bool process_payload_sync_data(const CORE_SYNC_DATA& hshd, CryptoNoteConnectionContext& context, bool is_inital);
     int handleCommand(bool is_notify, int command, const BinaryArray& in_buff, BinaryArray& buff_out, CryptoNoteConnectionContext& context, bool& handled);
@@ -80,8 +70,8 @@ namespace CryptoNote
     int handleRequestTxPool(int command, NOTIFY_REQUEST_TX_POOL::request& arg, CryptoNoteConnectionContext& context);
 
     //----------------- i_cryptonote_protocol ----------------------------------
-    virtual void relayBlock(NOTIFY_NEW_BLOCK::request& arg) override;
-    virtual void relayTransactions(const std::vector<BinaryArray>& transactions) override;
+    virtual void relay_block(NOTIFY_NEW_BLOCK::request& arg) override;
+    virtual void relay_transactions(NOTIFY_NEW_TRANSACTIONS::request& arg) override;
 
     //----------------------------------------------------------------------------------
     uint32_t get_current_blockchain_height();
@@ -89,7 +79,7 @@ namespace CryptoNote
     bool on_connection_synchronized();
     void updateObservedHeight(uint32_t peerHeight, const CryptoNoteConnectionContext& context);
     void recalculateMaxObservedHeight(const CryptoNoteConnectionContext& context);
-    int processObjects(CryptoNoteConnectionContext& context, std::vector<RawBlock>&& rawBlocks, const std::vector<CachedBlock>& cachedBlocks);
+    int processObjects(CryptoNoteConnectionContext& context, const std::vector<block_complete_entry>& blocks);
     Logging::LoggerRef logger;
 
   private:

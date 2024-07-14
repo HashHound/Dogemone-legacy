@@ -1,19 +1,6 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #pragma once
 
@@ -53,7 +40,7 @@ private:
   System::Event m_httpEvent;
   std::queue<MinerEvent> m_events;
 
-  CryptoNote::BlockTemplate m_minedBlock;
+  CryptoNote::Block m_minedBlock;
 
   uint64_t m_lastBlockTimestamp;
 
@@ -67,10 +54,10 @@ private:
   void startBlockchainMonitoring();
   void stopBlockchainMonitoring();
 
-  bool submitBlock(const CryptoNote::BlockTemplate& minedBlock, const std::string& daemonHost, uint16_t daemonPort);
+  bool submitBlock(const CryptoNote::Block& minedBlock, const std::string& daemonHost, uint16_t daemonPort);
   CryptoNote::BlockMiningParameters requestMiningParameters(System::Dispatcher& dispatcher, const std::string& daemonHost, uint16_t daemonPort, const std::string& miningAddress);
 
-  void adjustBlockTemplate(CryptoNote::BlockTemplate& blockTemplate) const;
+  void adjustBlockTemplate(CryptoNote::Block& blockTemplate) const;
 };
 
 } //namespace Miner

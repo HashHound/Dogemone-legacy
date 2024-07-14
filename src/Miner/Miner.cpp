@@ -1,26 +1,12 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "Miner.h"
 
 #include <functional>
 
 #include "crypto/crypto.h"
-#include "CryptoNoteCore/CachedBlock.h"
 #include "CryptoNoteCore/CryptoNoteFormatUtils.h"
 
 #include <System/InterruptedException.h>
@@ -38,7 +24,7 @@ Miner::~Miner() {
   assert(m_state != MiningState::MINING_IN_PROGRESS);
 }
 
-BlockTemplate Miner::mine(const BlockMiningParameters& blockMiningParameters, size_t threadCount) {
+Block Miner::mine(const BlockMiningParameters& blockMiningParameters, size_t threadCount) {
   if (threadCount == 0) {
     throw std::runtime_error("Miner requires at least one thread");
   }
@@ -90,21 +76,27 @@ void Miner::runWorkers(BlockMiningParameters blockMiningParameters, size_t threa
     m_workers.clear();
 
   } catch (std::exception& e) {
-    m_logger(Logging::ERROR) << "Error occurred during mining: " << e.what();
+    m_logger(Logging::ERROR) << "Error occured during mining: " << e.what();
     m_state = MiningState::MINING_STOPPED;
   }
 
   m_miningStopped.set();
 }
 
-void Miner::workerFunc(const BlockTemplate& blockTemplate, Difficulty difficulty, uint32_t nonceStep) {
+void Miner::workerFunc(const Block& blockTemplate, difficulty_type difficulty, uint32_t nonceStep) {
   try {
-    BlockTemplate block = blockTemplate;
+    Block block = blockTemplate;
     Crypto::cn_context cryptoContext;
 
     while (m_state == MiningState::MINING_IN_PROGRESS) {
-      CachedBlock cachedBlock(block);
-      Crypto::Hash hash = cachedBlock.getBlockLongHash(cryptoContext);
+      Crypto::Hash hash;
+      if (!get_block_longhash(cryptoContext, block, hash)) {
+        //error occured
+        m_logger(Logging::DEBUGGING) << "calculating long hash error occured";
+        m_state = MiningState::MINING_STOPPED;
+        return;
+      }
+
       if (check_hash(hash, difficulty)) {
         m_logger(Logging::INFO) << "Found block for difficulty " << difficulty;
 

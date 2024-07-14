@@ -1,19 +1,6 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <alloca.h>
 #include <cassert>
@@ -61,14 +48,6 @@ namespace Crypto {
     ge_scalarmult_base(&point, reinterpret_cast<unsigned char*>(&sec));
     ge_p3_tobytes(reinterpret_cast<unsigned char*>(&pub), &point);
   }
-
-void crypto_ops::generate_keys_from_seed(PublicKey &pub, SecretKey &sec, SecretKey &seed) {
-  ge_p3 point;
-  sec = seed;
-  sc_reduce32(reinterpret_cast<unsigned char*>(&sec));
-  ge_scalarmult_base(&point, reinterpret_cast<unsigned char*>(&sec));
-  ge_p3_tobytes(reinterpret_cast<unsigned char*>(&pub), &point);
-}
 
   bool crypto_ops::check_key(const PublicKey &key) {
     ge_p3 point;
@@ -306,17 +285,6 @@ void crypto_ops::generate_keys_from_seed(PublicKey &pub, SecretKey &sec, SecretK
     ge_p1p1_to_p3(&res, &point2);
   }
 
-    KeyImage crypto_ops::scalarmultKey(const KeyImage & P, const KeyImage & a) {
-        ge_p3 A;
-        ge_p2 R;
-// maybe use assert instead?
-        ge_frombytes_vartime(&A, reinterpret_cast<const unsigned char*>(&P));
-        ge_scalarmult(&R, reinterpret_cast<const unsigned char*>(&a), &A);
-        KeyImage aP;
-        ge_tobytes(reinterpret_cast<unsigned char*>(&aP), &R);
-        return aP;
-    }
-
   void crypto_ops::hash_data_to_ec(const uint8_t* data, std::size_t len, PublicKey& key) {
     Hash h;
     ge_p2 point;
@@ -347,23 +315,15 @@ void crypto_ops::generate_keys_from_seed(PublicKey &pub, SecretKey &sec, SecretK
 #pragma warning(disable: 4200)
 #endif
 
-  struct ec_point_pair {
-    EllipticCurvePoint a, b;
-  };
   struct rs_comm {
-  Hash h;
-  struct ec_point_pair ab[];
-};
-/*
     Hash h;
     struct {
       EllipticCurvePoint a, b;
     } ab[];
   };
 
-*/
   static inline size_t rs_comm_size(size_t pubs_count) {
-     return sizeof(rs_comm) + pubs_count * sizeof(ec_point_pair);
+    return sizeof(rs_comm) + pubs_count * sizeof(rs_comm().ab[0]);
   }
 
   void crypto_ops::generate_ring_signature(const Hash &prefix_hash, const KeyImage &image,
@@ -430,7 +390,7 @@ void crypto_ops::generate_keys_from_seed(PublicKey &pub, SecretKey &sec, SecretK
 
   bool crypto_ops::check_ring_signature(const Hash &prefix_hash, const KeyImage &image,
     const PublicKey *const *pubs, size_t pubs_count,
-    const Signature *sig, bool checkKeyImage) {
+    const Signature *sig) {
     size_t i;
     ge_p3 image_unp;
     ge_dsmp image_pre;
@@ -445,9 +405,6 @@ void crypto_ops::generate_keys_from_seed(PublicKey &pub, SecretKey &sec, SecretK
       return false;
     }
     ge_dsm_precomp(image_pre, &image_unp);
-    if (checkKeyImage && ge_check_subgroup_precomp_vartime(image_pre) != 0) {
-      return false;
-    }
     sc_0(reinterpret_cast<unsigned char*>(&sum));
     buf->h = prefix_hash;
     for (i = 0; i < pubs_count; i++) {

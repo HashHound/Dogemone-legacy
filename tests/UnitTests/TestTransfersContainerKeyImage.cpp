@@ -1,19 +1,6 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "gtest/gtest.h"
 
@@ -44,7 +31,7 @@ namespace {
 
     TransfersContainerKeyImage() :
       currency(CurrencyBuilder(logger).currency()), 
-      container(currency, logger, TEST_TRANSACTION_SPENDABLE_AGE), 
+      container(currency, TEST_TRANSACTION_SPENDABLE_AGE), 
       account(generateAccountKeys()),
       txTemplate(createTransaction()) {
       txTemplate->getTransactionSecretKey(txSecretKey);
@@ -96,7 +83,7 @@ namespace {
       return finalTx;
     }
 
-    std::unique_ptr<ITransactionReader> addSpendingTransaction(const Hash& sourceTx, uint32_t height, uint32_t outputIndex, uint64_t amount = TEST_OUTPUT_AMOUNT, bool fixedKey = false) {
+    std::unique_ptr<ITransactionReader> addSpendingTransaction(const Hash& sourceTx, uint64_t height, uint32_t outputIndex, uint64_t amount = TEST_OUTPUT_AMOUNT, bool fixedKey = false) {
       auto outputs = container.getTransactionOutputs(sourceTx, ITransfersContainer::IncludeTypeAll |
         ITransfersContainer::IncludeStateUnlocked | ITransfersContainer::IncludeStateSoftLocked);
 
