@@ -732,23 +732,73 @@ bool simple_wallet::restore_wallet(const std::string &wallet_file, const std::st
   return true;
 }
 
-bool simple_wallet::restore_wallet_command(const std::vector<std::string> &args) {
-  if (args.size() < 2) {
-    fail_msg_writer() << "Usage: restore_wallet <file> <mnemonic>";
-    return false;
-  }
+bool SimpleWallet::restoreWalletFromMnemonic(const std::string& mnemonic) {
+    Crypto::SecretKey spendSecretKey;
+    if (!Crypto::ElectrumWords::words_to_bytes(mnemonic, spendSecretKey)) {
+        fail_msg_writer() << "Invalid mnemonic phrase.";
+        return false;
+    }
 
-  std::string wallet_file = args[0];
-  std::string mnemonic = args[1];
+    m_wallet.reset(new WalletLegacy(m_currency, *m_node.get()));
+    m_node->addObserver(static_cast<INodeObserver*>(this));
+    m_wallet->addObserver(this);
 
-  Tools::PasswordContainer pwd_container;
-  if (!pwd_container.read_password()) {
-    fail_msg_writer() << "failed to read wallet password";
-    return false;
-  }
+    AccountKeys keys;
+    keys.spendSecretKey = spendSecretKey;
+    Crypto::secret_key_to_public_key(keys.spendSecretKey, keys.address.spendPublicKey);
 
-  return restore_wallet(wallet_file, mnemonic, pwd_container.password());
+    Crypto::SecretKey viewSecretKey = Crypto::generate_keys(keys.address.viewPublicKey, keys.viewSecretKey);
+    keys.viewSecretKey = viewSecretKey;
+
+    m_wallet->initWithKeys(keys, password);
+
+    try {
+        WalletHelper::storeWallet(*m_wallet, m_wallet_file);
+    } catch (std::exception& e) {
+        fail_msg_writer() << "failed to save new wallet: " << e.what();
+        throw;
+    }
+
+    success_msg_writer() << "Wallet restored successfully.";
+    return true;
 }
+void SimpleWallet::showMnemonic() {
+    Crypto::SecretKey spendSecretKey = m_wallet->getAccountKeys().spendSecretKey;
+    std::string mnemonic = generate_mnemonic(spendSecretKey);
+    std::cout << "Mnemonic: " << mnemonic << std::endl;
+}
+
+if (command == "restore_from_mnemonic") {
+    std::string mnemonic;
+    std::cout << "Enter mnemonic: ";
+    std::getline(std::cin, mnemonic);
+    if (!wallet.restoreWalletFromMnemonic(mnemonic)) {
+        std::cerr << "Failed to restore wallet from mnemonic." << std::endl;
+    } else {
+        std::cout << "Wallet restored successfully." << std::endl;
+    }
+}
+
+if (command == "show_mnemonic") {
+    wallet.showMnemonic();
+}
+void SimpleWallet::handleCommand(const std::string& command) {
+    if (command == "restore_from_mnemonic") {
+        std::string mnemonic;
+        std::cout << "Enter mnemonic: ";
+        std::getline(std::cin, mnemonic);
+        if (!restoreWalletFromMnemonic(mnemonic)) {
+            std::cerr << "Failed to restore wallet from mnemonic." << std::endl;
+        } else {
+            std::cout << "Wallet restored successfully." << std::endl;
+        }
+    } else if (command == "show_mnemonic") {
+        showMnemonic();
+    } else {
+        // Handle other commands
+    }
+}
+
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::close_wallet()
 {
