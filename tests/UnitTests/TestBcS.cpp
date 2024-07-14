@@ -1,19 +1,6 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "gtest/gtest.h"
 
@@ -143,14 +130,13 @@ public:
     m_blockchain.resize(height);
   }
 
-  virtual uint32_t onNewBlocks(const CompleteBlock* blocks, uint32_t startHeight, uint32_t count) override {
+  virtual bool onNewBlocks(const CompleteBlock* blocks, uint32_t startHeight, uint32_t count) override {
     //assert(m_blockchain.size() == startHeight);
-    uint32_t blocksAdded = count;
-    for (size_t i = 0; i < count; ++i) {
+    while (count--) {
       m_blockchain.push_back(blocks->blockHash);
       ++blocks;
     }
-    return blocksAdded;
+    return true;
   }
 
   const std::vector<Hash>& getBlockchain() const {
@@ -189,11 +175,10 @@ private:
 class BcSTest : public ::testing::Test, public IBlockchainSynchronizerObserver {
 public:
   BcSTest() :
-    m_logger(Logging::ERROR),
     m_currency(CurrencyBuilder(m_logger).currency()),
     generator(m_currency),
     m_node(generator),
-    m_sync(m_node, m_logger, m_currency.genesisBlockHash()) {
+    m_sync(m_node, m_currency.genesisBlockHash()) {
     m_node.setGetNewBlocksLimit(5); // sync max 5 blocks per request
   }
 
@@ -211,7 +196,7 @@ public:
       generator.getBlockchain().begin(),
       generator.getBlockchain().end(),
       std::back_inserter(generatorBlockchain),
-      [](const BlockTemplate& b) { return CachedBlock(b).getBlockHash(); });
+      [](const Block& b) { return get_block_hash(b); });
 
     for (const auto& consumer : m_consumers) {
       ASSERT_EQ(consumer->getBlockchain(), generatorBlockchain);
@@ -490,7 +475,7 @@ TEST_F(BcSTest, serializationCheck) {
 
   std::string first = memstream.str();
 
-  BlockchainSynchronizer sync2(m_node, m_logger, m_currency.genesisBlockHash());
+  BlockchainSynchronizer sync2(m_node, m_currency.genesisBlockHash());
 
   ASSERT_NO_THROW(sync2.load(memstream));
   std::stringstream memstream2;
@@ -543,13 +528,13 @@ TEST_F(BcSTest, firstPoolSynchronizationCheck) {
   std::vector<Hash> c1ResponseNewPool;
   std::vector<Hash> c2ResponseNewPool;
 
+
   c1.onPoolUpdatedFunctor = [&](const std::vector<std::unique_ptr<ITransactionReader>>& new_txs, const std::vector<Hash>& deleted)->std::error_code {
     c1ResponseDeletedPool.assign(deleted.begin(), deleted.end());
     for (const auto& tx: new_txs) {
       Hash hash = tx->getTransactionHash();
       c1ResponseNewPool.push_back(reinterpret_cast<const Hash&>(hash));
     }
-
     return std::error_code();
   };
 
@@ -559,7 +544,6 @@ TEST_F(BcSTest, firstPoolSynchronizationCheck) {
       Hash hash = tx->getTransactionHash();
       c2ResponseNewPool.push_back(reinterpret_cast<const Hash&>(hash));
     }
-
     return std::error_code();
   };
 
@@ -570,29 +554,23 @@ TEST_F(BcSTest, firstPoolSynchronizationCheck) {
   std::unordered_set<Hash> firstKnownPool;
   std::unordered_set<Hash> secondKnownPool;
 
+
   m_node.getPoolSymmetricDifferenceFunctor = [&](const std::vector<Hash>& known, Hash last, bool& is_actual,
           std::vector<std::unique_ptr<ITransactionReader>>& new_txs, std::vector<Hash>& deleted, const INode::Callback& callback) {
     is_actual = true;
     requestsCount++;
 
-    if (requestsCount == 1) {
-      // Ignore request to delete outdated transactions
-      callback(std::error_code());
-      return false;
-    }
-
     new_txs.clear();
-    for (const auto& tx : expectedNewPoolAnswer) {
+    for (const auto& tx: expectedNewPoolAnswer) {
       new_txs.push_back(createTransactionPrefix(tx));
     }
-
     deleted.assign(expectedDeletedPoolAnswer.begin(), expectedDeletedPoolAnswer.end());
 
-    if (requestsCount == 2) {
+    if (requestsCount == 1) {
       firstKnownPool.insert(known.begin(), known.end());
     }
 
-    if (requestsCount == 3) {
+    if (requestsCount == 2) {
       secondKnownPool.insert(known.begin(), known.end());
     }
 
@@ -614,7 +592,7 @@ TEST_F(BcSTest, firstPoolSynchronizationCheck) {
   m_sync.removeObserver(&o1);
   o1.syncFunc = [](std::error_code) {};
 
-  EXPECT_EQ(3, requestsCount);
+  EXPECT_EQ(2, requestsCount);
   EXPECT_EQ(firstExpectedPool, firstKnownPool);
   EXPECT_EQ(secondExpectedPool, secondKnownPool);
   EXPECT_EQ(expectedDeletedPoolAnswer, c1ResponseDeletedPool);
@@ -988,7 +966,7 @@ public:
 
   FunctorialBlockhainConsumerStub(const Hash& genesisBlockHash) : ConsumerStub(genesisBlockHash), onBlockchainDetachFunctor([](uint32_t) {}) {}
 
-  virtual uint32_t onNewBlocks(const CompleteBlock* blocks, uint32_t startHeight, uint32_t count) override {
+  virtual bool onNewBlocks(const CompleteBlock* blocks, uint32_t startHeight, uint32_t count) override {
     return onNewBlocksFunctor(blocks, startHeight, count);
   }
 
@@ -996,7 +974,7 @@ public:
     onBlockchainDetachFunctor(height);
   }
 
-  std::function<uint32_t(const CompleteBlock*, uint32_t, uint32_t)> onNewBlocksFunctor;
+  std::function<bool(const CompleteBlock*, uint32_t, size_t)> onNewBlocksFunctor;
   std::function<void(uint32_t)> onBlockchainDetachFunctor;
 };
 
@@ -1032,26 +1010,24 @@ TEST_F(BcSTest, checkConsumerError) {
   std::error_code errc;
   o1.syncFunc = [&](std::error_code ec) {
     e.notify();
-    if (!errc) {
-      errc = ec;
-    }
+    errc = ec;
   };
 
   generator.generateEmptyBlocks(10);
 
-  c.onNewBlocksFunctor = [](const CompleteBlock*, uint32_t, uint32_t count) -> uint32_t {
-    return 0;
+  c.onNewBlocksFunctor = [](const CompleteBlock*, uint32_t, size_t) -> bool {
+    return false;
   };
 
   m_sync.addObserver(&o1);
   m_sync.addConsumer(&c);
   m_sync.start();
   e.wait();
-  EXPECT_EQ(std::make_error_code(std::errc::invalid_argument), errc);
-
   m_sync.stop();
   m_sync.removeObserver(&o1);
   o1.syncFunc = [](std::error_code) {};
+
+  EXPECT_EQ(std::make_error_code(std::errc::invalid_argument), errc);
 }
 
 TEST_F(BcSTest, checkBlocksRequesting) {
@@ -1072,9 +1048,9 @@ TEST_F(BcSTest, checkBlocksRequesting) {
 
   size_t blocksRequested = 0;
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t, size_t count) -> bool {
     blocksRequested += count;
-    return count;
+    return true;
   };
 
   m_sync.addObserver(&o1);
@@ -1104,8 +1080,8 @@ TEST_F(BcSTest, checkConsumerHeightReceived) {
   generator.generateEmptyBlocks(static_cast<size_t>(firstlySnchronizedHeight - 1));//-1 for genesis
   m_node.setGetNewBlocksLimit(50);
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, uint32_t count) -> uint32_t {
-    return count;
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, size_t) -> bool {
+    return true;
   };
 
   m_sync.addObserver(&o1);
@@ -1119,9 +1095,9 @@ TEST_F(BcSTest, checkConsumerHeightReceived) {
   ConsumerStub fake_c(m_currency.genesisBlockHash());
   m_sync.addConsumer(&fake_c);
   uint32_t receivedStartHeight = 0;
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, size_t) -> bool {
     receivedStartHeight = startHeight;
-    return count;
+    return true;
   };
 
   m_sync.start();
@@ -1146,8 +1122,8 @@ TEST_F(BcSTest, checkConsumerOldBlocksNotIvoked) {
   generator.generateEmptyBlocks(20);
   m_node.setGetNewBlocksLimit(50);
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, uint32_t count) -> uint32_t {
-    return count;
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, size_t) -> bool {
+    return true;
   };
 
   m_sync.addObserver(&o1);
@@ -1161,9 +1137,9 @@ TEST_F(BcSTest, checkConsumerOldBlocksNotIvoked) {
 
   bool onNewBlocksInvoked = false;
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint64_t startHeight, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint64_t startHeight, size_t) -> bool {
     onNewBlocksInvoked = true;
-    return count;
+    return true;
   };
 
   m_sync.start();
@@ -1188,8 +1164,8 @@ TEST_F(BcSTest, checkConsumerHeightReceivedOnDetach) {
   generator.generateEmptyBlocks(20);
   m_node.setGetNewBlocksLimit(50);
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, uint32_t count) -> uint32_t {
-    return count;
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, size_t) -> bool {
+    return true;
   };
 
   m_sync.addObserver(&o1);
@@ -1204,9 +1180,9 @@ TEST_F(BcSTest, checkConsumerHeightReceivedOnDetach) {
   generator.generateEmptyBlocks(20);
 
   uint32_t receivedStartHeight = 0;
-  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock*, uint32_t startHeight, size_t) -> bool {
     receivedStartHeight = startHeight;
-    return count;
+    return true;
   };
 
   uint32_t receivedetachHeight = 0;
@@ -1236,7 +1212,7 @@ TEST_F(BcSTest, checkStatePreservingBetweenSynchronizations) {
 
   generator.generateEmptyBlocks(20);
 
-  Hash lastBlockHash = CachedBlock(generator.getBlockchain().back()).getBlockHash();
+  Hash lastBlockHash = get_block_hash(generator.getBlockchain().back());
 
   m_sync.addObserver(&o1);
   m_sync.start();
@@ -1265,20 +1241,16 @@ TEST_F(BcSTest, checkBlocksRerequestingOnError) {
   FunctorialBlockhainConsumerStub c(m_currency.genesisBlockHash());
   IBlockchainSynchronizerFunctorialObserver o1;
   EventWaiter e;
-  bool waitForFirstError = true;
+  std::error_code errc;
   o1.syncFunc = [&](std::error_code ec) {
-    if (ec && waitForFirstError) {
-      waitForFirstError = false;
-      e.notify();
-    } else if (!ec && !waitForFirstError) {
-      e.notify();
-    }
+    e.notify();
+    errc = ec;
   };
 
   generator.generateEmptyBlocks(20);
   m_node.setGetNewBlocksLimit(10);
   
-  std::atomic<int> requestsCount(0);
+  int requestsCount = 0;
   std::list<Hash> firstlyKnownBlockIdsTaken;
   std::list<Hash> secondlyKnownBlockIdsTaken;
 
@@ -1286,13 +1258,14 @@ TEST_F(BcSTest, checkBlocksRerequestingOnError) {
   std::vector<Hash> secondlyReceivedBlocks;
 
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock* blocks, uint32_t, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock* blocks, uint32_t, size_t count) -> bool {
+
     if (requestsCount == 2) {
       for (size_t i = 0; i < count; ++i) {
         firstlyReceivedBlocks.push_back(blocks[i].blockHash);
       }
 
-      return 0;
+      return false;
     }
 
     if (requestsCount == 3) {
@@ -1301,20 +1274,20 @@ TEST_F(BcSTest, checkBlocksRerequestingOnError) {
       }
     }
 
-    return count;
+    return true;   
   };
 
   m_node.queryBlocksFunctor = [&](const std::vector<Hash>& knownBlockIds, uint64_t timestamp, std::vector<BlockShortEntry>& newBlocks, uint32_t& startHeight, const INode::Callback& callback) -> bool {
-    ++requestsCount;
-
-    if (requestsCount == 2) {
+    if (requestsCount == 1) {
       firstlyKnownBlockIdsTaken.assign(knownBlockIds.begin(), knownBlockIds.end());
     }
 
-    if (requestsCount == 3) {
+    if (requestsCount == 2) {
       secondlyKnownBlockIdsTaken.assign(knownBlockIds.begin(), knownBlockIds.end());
     }
 
+
+    ++requestsCount;
     return true;
   };
 
@@ -1362,7 +1335,7 @@ TEST_F(BcSTest, checkTxOrder) {
 
   BlockShortEntry bse;
   bse.hasBlock = true;
-  bse.blockHash = CachedBlock(last_block).getBlockHash();
+  bse.blockHash = get_block_hash(last_block);;
   bse.block = last_block;
   bse.txsShortInfo.push_back({tx1hash, tx1});
   bse.txsShortInfo.push_back({tx2hash, tx2});
@@ -1387,13 +1360,13 @@ TEST_F(BcSTest, checkTxOrder) {
 
   std::vector<Hash> receivedTxHashes = {};
 
-  c.onNewBlocksFunctor = [&](const CompleteBlock* blocks, uint32_t, uint32_t count) -> uint32_t {
+  c.onNewBlocksFunctor = [&](const CompleteBlock* blocks, uint32_t, size_t count) -> bool {
     for (auto& tx : blocks[count - 1].transactions) {
       auto hash = tx->getTransactionHash();
       receivedTxHashes.push_back(*reinterpret_cast<Hash*>(&hash));
     }
 
-    return count;
+    return true;
   };
 
   m_sync.addObserver(&o1);
@@ -1405,77 +1378,4 @@ TEST_F(BcSTest, checkTxOrder) {
   o1.syncFunc = [](std::error_code) {};
 
   EXPECT_EQ(expectedTxHashes, receivedTxHashes);
-}
-
-TEST_F(BcSTest, outdatedTxsRemovedOnlyAtFirstStart) {
-  auto tx1ptr = createTransaction();
-
-  auto tx1 = ::createTx(*tx1ptr.get());
-
-  auto tx1hash = getObjectHash(tx1);
-
-  FunctorialPoolConsumerStub c1(m_currency.genesisBlockHash());
-
-  c1.addPoolTransaction(tx1hash);
-
-  std::vector<Hash> expectedDeletedPoolAnswer = { tx1hash };
-
-  std::vector<Hash> c1ResponseDeletedPool;
-  std::vector<Hash> c1ResponseNewPool;
-
-  c1.onPoolUpdatedFunctor = [&](const std::vector<std::unique_ptr<ITransactionReader>>& new_txs, const std::vector<Hash>& deleted)->std::error_code {
-    c1ResponseDeletedPool.assign(deleted.begin(), deleted.end());
-    for (const auto& tx : new_txs) {
-      Hash hash = tx->getTransactionHash();
-      c1ResponseNewPool.push_back(reinterpret_cast<const Hash&>(hash));
-    }
-
-    return std::error_code();
-  };
-
-
-  m_sync.addConsumer(&c1);
-
-  int requestsCount = 0;
-  m_node.getPoolSymmetricDifferenceFunctor = [&](const std::vector<Hash>& known, Hash last, bool& is_actual,
-    std::vector<std::unique_ptr<ITransactionReader>>& new_txs, std::vector<Hash>& deleted, const INode::Callback& callback) {
-    ++requestsCount;
-    is_actual = true;
-    deleted.push_back(tx1hash);
-    callback(std::error_code());
-    return false;
-  };
-
-  IBlockchainSynchronizerFunctorialObserver o1;
-  EventWaiter e;
-  o1.syncFunc = [&e](std::error_code) {
-    e.notify();
-  };
-
-  m_sync.addObserver(&o1);
-  m_sync.start();
-  e.wait();
-  m_sync.stop();
-  m_sync.removeObserver(&o1);
-  o1.syncFunc = [](std::error_code) {};
-
-  EXPECT_EQ(2, requestsCount);
-  EXPECT_EQ(expectedDeletedPoolAnswer, c1ResponseDeletedPool);
-
-  generator.generateEmptyBlocks(20);
-  requestsCount = 0;
-
-  o1.syncFunc = [&e](std::error_code) {
-    e.notify();
-  };
-
-  m_sync.addObserver(&o1);
-  m_sync.start();
-  e.wait();
-  m_sync.stop();
-  m_sync.removeObserver(&o1);
-  o1.syncFunc = [](std::error_code) {};
-
-  EXPECT_EQ(1, requestsCount);
-  EXPECT_EQ(expectedDeletedPoolAnswer, c1ResponseDeletedPool);
 }

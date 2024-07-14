@@ -1,26 +1,12 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
-//
-// This file is part of Bytecoin.
-//
-// Bytecoin is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Bytecoin is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "WalletLegacy.h"
 
 #include <string.h>
 #include <time.h>
 
-#include "Logging/ConsoleLogger.h"
 #include "WalletLegacy/WalletHelper.h"
 #include "WalletLegacy/WalletLegacySerialization.h"
 #include "WalletLegacy/WalletLegacySerializer.h"
@@ -108,12 +94,11 @@ WalletLegacy::WalletLegacy(const CryptoNote::Currency& currency, INode& node) :
   m_state(NOT_INITIALIZED),
   m_currency(currency),
   m_node(node),
-  m_consoleLogger(Logging::ERROR),
   m_isStopping(false),
   m_lastNotifiedActualBalance(0),
   m_lastNotifiedPendingBalance(0),
-  m_blockchainSync(node, m_consoleLogger, currency.genesisBlockHash()),
-  m_transfersSync(currency, m_consoleLogger, m_blockchainSync, node),
+  m_blockchainSync(node, currency.genesisBlockHash()),
+  m_transfersSync(currency, m_blockchainSync, node),
   m_transferDetails(nullptr),
   m_transactionsCache(m_currency.mempoolTxLiveTime()),
   m_sender(nullptr),
@@ -203,9 +188,6 @@ void WalletLegacy::initSync() {
   sub.transactionSpendableAge = 1;
   sub.syncStart.height = 0;
   sub.syncStart.timestamp = m_account.get_createtime() - ACCOUN_CREATE_TIME_ACCURACY;
-  if (m_syncAll == 1)
-    sub.syncStart.timestamp = 0;
-  std::cout << "Sync from timestamp: " << sub.syncStart.timestamp << std::endl;
   
   auto& subObject = m_transfersSync.addSubscription(sub);
   m_transferDetails = &subObject.getContainer();
@@ -598,9 +580,6 @@ void WalletLegacy::notifyIfBalanceChanged() {
 
 }
 
-void WalletLegacy::syncAll(bool syncWalletFromZero) {
-  m_syncAll = syncWalletFromZero;
-}
 void WalletLegacy::getAccountKeys(AccountKeys& keys) {
   if (m_state == NOT_INITIALIZED) {
     throw std::system_error(make_error_code(CryptoNote::error::NOT_INITIALIZED));
