@@ -1,61 +1,61 @@
-## **Dogemone(DME): The Future of Privacy Coins**
+### About
+Forknote is innovative way to create Cryptonote (https://cryptonote.org) based cryptotokens. It gives the users the ability to create cryptotokens just by creating a simple configuration file.
 
-Dogemone is a cutting-edge privacy coin built on the robust Cryptonote protocol, ensuring unparalleled transaction confidentiality and security. With a maximum supply of 300 million, Dogemone follows a meticulously designed emission curve, providing a predictable and fair distribution over time. The coin leverages the Cryptonight algorithm, known for its ASIC resistance and efficiency in CPU and GPU mining, promoting decentralization. Dogemone is committed to protecting your financial privacy while maintaining a secure and decentralized network, making it a standout choice in the realm of cryptocurrency. Join us in shaping a future where privacy and security are paramount.
+### Dependencies
+* GCC 4.7.3 or later     (http://gcc.gnu.org/)
+* CMake 2.8.6 or later   (http://www.cmake.org/)
+* Boost 1.55 or later    (http://www.boost.org/)
+* MSVC 2013 (Windows only)
 
-### **Key Features:**
-- **Privacy-Focused**: Utilizes Cryptonote protocol for untraceable and unlinkable transactions.
-- **Controlled Supply**: Capped at 300 million coins with a fair emission curve.
-- **Efficient Mining**: Cryptonight algorithm ensures equitable mining opportunities.
-- **No Premine**: 100% fair launch with no premine.
-- **Developer Fee**: Every tenth block is allocated to development wallet, this block is called developer block, the whole block reward goes to the dev address, this method is much more fair than a premine because it is taken slowly over time.
-- **Difficulty Adjustment**: Adaptive difficulty adjustment every 120 seconds for network stability.
-- **Decentralized Network**: Promotes decentralization and security.
+Step by step Windows instructions:
+https://github.com/forknote/cryptonote-generator/blob/master/docs/windows-requirements-install.md
 
-Embrace the future of privacy with Dogemone.
+Ubuntu (tested on Ubuntu 14.04) / Mac dependencies install script:
+https://github.com/forknote/cryptonote-generator/blob/master/configure.sh
 
 
-## Building Dogemone 
-
-### On *nix
-
-Dependencies: GCC 4.7.3 or later, CMake 2.8.6 or later, and Boost 1.55.
-
-You may download them from:
-
-* http://gcc.gnu.org/
-* http://www.cmake.org/
-* http://www.boost.org/
-* Alternatively, it may be possible to install them using a package manager.
-
-To build, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
-
+### Usage
+1. Download or compile the binaries
+2. Create configuration file. The easiest way is to use the form on http://forknote.net
+3. Start the daemon:
 ```
-mkdir build
-cd build
-cmake -DSTATIC=ON .. && make -j4
+./forknoted --config-file PATH_TO_YOUR_CONFIG
 ```
 
-**Advanced options:**
+### Configuration parameters
+Use http://forknote.net to create configuration files.
 
-* Parallel build: run `make -j<number of threads>` instead of `make`.
-* Debug build: run `make build-debug`.
-* Test suite: run `make test-release` to run tests in addition to building. Running `make test-debug` will do the same to the debug version.
-* Building with Clang: it may be possible to use Clang instead of GCC, but this may not work everywhere. To build, run `export CC=clang CXX=clang++` before running `make`.
-
-### On Windows
-Dependencies: MSVC 2013 or later, CMake 2.8.6 or later, and Boost 1.55. You may download them from:
-
-* http://www.microsoft.com/
-* http://www.cmake.org/
-* http://www.boost.org/
-
-To build, change to a directory where this file is located, and run theas commands: 
+All fields supported:
 ```
-mkdir build
-cd build
-cmake -G "Visual Studio 16 2019" -A x64 .. -DBOOST_ROOT=B:/local/boost_1_71_0/lib64-msvc-14.2
-MSBuild CryptoNote.sln /p:Configuration=Release /p:PlatformToolset=v142 /m
+GENESIS_COINBASE_TX_HEX=     // REQUIRED. Use " ./forknoted --config-file PATH_TO_CONFIG --print-genesis-tx " to generate 
+CRYPTONOTE_NAME=my_coin
+p2p-bind-port=33669
+rpc-bind-port=33670
+seed-node=127.0.0.1:33669    // format:  IP:PORT
+seed-node=127.0.0.2:33669    
+UPGRADE_HEIGHT_V2=1             // REQUIRED. Use 1 for new cryptotokens
+UPGRADE_HEIGHT_V3=2             // REQUIRED. Use 2 for new cryptotokens
+MONEY_SUPPLY=18446744073709551615
+EMISSION_SPEED_FACTOR=18
+GENESIS_BLOCK_REWARD=0           // premined coins. Default: 0
+DIFFICULTY_TARGET=120
+CRYPTONOTE_DISPLAY_DECIMAL_POINT=12
+DEFAULT_DUST_THRESHOLD=1000000
+MINIMUM_FEE=1000000
+CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW=10
+CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE=20000
+CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX=120
+BYTECOIN_NETWORK=b2889400-e6f5-b62d-8d37-8fa91779dc7e
+P2P_STAT_TRUSTED_PUB_KEY=4d26c4df7f4ca7037950ad026f9ab36dd05d881952662992f2e4dcfcafbe57eb
+CHECKPOINT=10000:70d2531151529ac00bf875281e15f51324934bc85e5733dcd92e1ccb1a665ff8   // format: HEIGHT:BLOCK_ID
+CHECKPOINT=20000:80d2dd05d8819526629235722e15f5f9ab36dd05d881952662992f2e4dcfcafb
+
+// simplewallet parameters
+wallet-rpc-bind-ip=127.0.0.1        // instead rpc-bind-ip
+wallet-rpc-bind-port=33671          // instead rpc-bind-port
+SYNC_FROM_ZERO=1                    // to sync the wallet from block 0. Used for premine coins or brain wallets
 ```
 
-And then do Build.
-We would recommend using the prebuild binaries from the release section, Good luck!
+---
+This code is generated by Cryptonote generator - https://github.com/forknote/cryptonote-generator
+Seed source - https://github.com/amjuarez/bytecoin

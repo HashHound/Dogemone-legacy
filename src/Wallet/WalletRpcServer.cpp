@@ -1,6 +1,19 @@
-// Copyright (c) 2011-2024 The Cryptonote developers, Dogemone Project
-// Distributed under the MIT/X11 software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
+//
+// This file is part of Bytecoin.
+//
+// Bytecoin is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Bytecoin is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "WalletRpcServer.h"
 
@@ -21,8 +34,8 @@ using namespace CryptoNote;
 
 namespace Tools {
 
-const command_line::arg_descriptor<uint16_t> wallet_rpc_server::arg_rpc_bind_port = { "rpc-bind-port", "Starts wallet as rpc server for wallet operations, sets bind port for server", 0, true };
-const command_line::arg_descriptor<std::string> wallet_rpc_server::arg_rpc_bind_ip = { "rpc-bind-ip", "Specify ip to bind rpc server", "127.0.0.1" };
+const command_line::arg_descriptor<uint16_t> wallet_rpc_server::arg_rpc_bind_port = { "wallet-rpc-bind-port", "Starts wallet as rpc server for wallet operations, sets bind port for server", 0, true };
+const command_line::arg_descriptor<std::string> wallet_rpc_server::arg_rpc_bind_ip = { "wallet-rpc-bind-ip", "Specify ip to bind rpc server", "127.0.0.1" };
 
 void wallet_rpc_server::init_options(boost::program_options::options_description& desc) {
   command_line::add_arg(desc, arg_rpc_bind_ip);
