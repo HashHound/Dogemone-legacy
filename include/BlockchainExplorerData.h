@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2024 The Cryptonote developers
+// Copyright (c) 2011-2016 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,9 +14,9 @@
 
 namespace CryptoNote {
 
-enum class TransactionRemoveReason : uint8_t
-{
-  INCLUDED_IN_BLOCK = 0,
+enum class TransactionRemoveReason : uint8_t 
+{ 
+  INCLUDED_IN_BLOCK = 0, 
   TIMEOUT = 1
 };
 
@@ -70,7 +70,7 @@ struct TransactionInputDetails {
 
 struct TransactionExtraDetails {
   std::vector<size_t> padding;
-  std::vector<Crypto::PublicKey> publicKey;
+  std::vector<Crypto::PublicKey> publicKey; 
   std::vector<std::string> nonce;
   std::vector<uint8_t> raw;
 };
