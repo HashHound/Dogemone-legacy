@@ -136,7 +136,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   KeyPair txkey = generateKeyPair();
   addTransactionPublicKeyToExtra(tx.extra, txkey.publicKey);
-  if (!extraNonce.empty()) {
+  if (!extraNonce.empty() && extraNonce.size() <= 255) { // Ensure extraNonce size is within limit
     if (!addExtraNonceToTransactionExtra(tx.extra, extraNonce)) {
       return false;
     }
@@ -154,8 +154,11 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   uint64_t minerReward = blockReward + fee; // Adding the fee to the block reward
 
+  // Allocate developer reward if it's every 10th block
   if (height % 10 == 0) {
-    // Allocate the block reward of every 10th block to the developer address
+    uint64_t devReward = static_cast<uint64_t>(blockReward * 0.10); // 10% of the block reward
+    minerReward -= devReward; // Deduct devReward from minerReward
+
     AccountPublicAddress devAddress;
     bool parseSuccess = parseAccountAddressString(DEVELOPER_ADDRESS, devAddress);
     if (!parseSuccess) {
@@ -164,15 +167,15 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     }
 
     Crypto::KeyDerivation derivation;
-    bool keyDerivationSuccess = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, derivation);
-    if (!keyDerivationSuccess) {
+    bool r = Crypto::generate_key_derivation(devAddress.viewPublicKey, txkey.secretKey, derivation);
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "Failed to generate key derivation for developer address";
       return false;
     }
 
     Crypto::PublicKey outEphemeralPubKey;
-    bool derivePubKeySuccess = Crypto::derive_public_key(derivation, 0, devAddress.spendPublicKey, outEphemeralPubKey);
-    if (!derivePubKeySuccess) {
+    r = Crypto::derive_public_key(derivation, 0, devAddress.spendPublicKey, outEphemeralPubKey);
+    if (!r) {
       logger(ERROR, BRIGHT_RED) << "Failed to derive public key for developer address";
       return false;
     }
@@ -180,62 +183,62 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
     KeyOutput tk;
     tk.key = outEphemeralPubKey;
 
+    TransactionOutput devOut;
+    devOut.amount = devReward;
+    devOut.target = tk;
+    tx.outputs.push_back(devOut);
+  }
+
+  // Regular miner reward
+  std::vector<uint64_t> outAmounts;
+  decompose_amount_into_digits(minerReward, m_defaultDustThreshold,
+    [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
+    [&outAmounts](uint64_t a_dust) { outAmounts.push_back(a_dust); });
+
+  if (!(1 <= maxOuts)) {
+    logger(ERROR, BRIGHT_RED) << "max_out must be non-zero";
+    return false;
+  }
+
+  while (maxOuts < outAmounts.size()) {
+    outAmounts[outAmounts.size() - 2] += outAmounts.back();
+    outAmounts.resize(outAmounts.size() - 1);
+  }
+
+  uint64_t summaryAmounts = 0;
+  for (size_t no = 0; no < outAmounts.size(); no++) {
+    Crypto::KeyDerivation derivation = boost::value_initialized<Crypto::KeyDerivation>();
+    Crypto::PublicKey outEphemeralPubKey = boost::value_initialized<Crypto::PublicKey>();
+
+    bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
+
+    if (!r) {
+      logger(ERROR, BRIGHT_RED) << "while creating outs: failed to generate_key_derivation("
+        << minerAddress.viewPublicKey << ", " << txkey.secretKey << ")";
+      return false;
+    }
+
+    r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
+
+    if (!r) {
+      logger(ERROR, BRIGHT_RED) << "while creating outs: failed to derive_public_key("
+        << derivation << ", " << no << ", " << minerAddress.spendPublicKey << ")";
+      return false;
+    }
+
+    KeyOutput tk;
+    tk.key = outEphemeralPubKey;
+
     TransactionOutput out;
-    out.amount = blockReward;
+    summaryAmounts += out.amount = outAmounts[no];
     out.target = tk;
     tx.outputs.push_back(out);
-  } else {
-    // Decompose amounts for miner
-    std::vector<uint64_t> outAmounts;
-    decompose_amount_into_digits(minerReward, m_defaultDustThreshold,
-      [&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
-      [&outAmounts](uint64_t a_dust) { outAmounts.push_back(a_dust); });
+  }
 
-    if (!(1 <= maxOuts)) {
-      logger(ERROR, BRIGHT_RED) << "max_out must be non-zero";
-      return false;
-    }
-
-    while (maxOuts < outAmounts.size()) {
-      outAmounts[outAmounts.size() - 2] += outAmounts.back();
-      outAmounts.resize(outAmounts.size() - 1);
-    }
-
-    uint64_t summaryAmounts = 0;
-    for (size_t no = 0; no < outAmounts.size(); no++) {
-      Crypto::KeyDerivation derivation = boost::value_initialized<Crypto::KeyDerivation>();
-      Crypto::PublicKey outEphemeralPubKey = boost::value_initialized<Crypto::PublicKey>();
-
-      bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
-
-      if (!r) {
-        logger(ERROR, BRIGHT_RED) << "while creating outs: failed to generate_key_derivation("
-          << minerAddress.viewPublicKey << ", " << txkey.secretKey << ")";
-        return false;
-      }
-
-      r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
-
-      if (!r) {
-        logger(ERROR, BRIGHT_RED) << "while creating outs: failed to derive_public_key("
-          << derivation << ", " << no << ", " << minerAddress.spendPublicKey << ")";
-        return false;
-      }
-
-      KeyOutput tk;
-      tk.key = outEphemeralPubKey;
-
-      TransactionOutput out;
-      summaryAmounts += out.amount = outAmounts[no];
-      out.target = tk;
-      tx.outputs.push_back(out);
-    }
-
-    // Ensure summary amounts match miner reward
-    if (summaryAmounts != minerReward) {
-      logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal minerReward = " << minerReward;
-      return false;
-    }
+  // Ensure summary amounts match block reward + fee
+  if (summaryAmounts != minerReward) {
+    logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal minerReward = " << minerReward;
+    return false;
   }
 
   tx.version = CURRENT_TRANSACTION_VERSION;
@@ -250,6 +253,7 @@ bool Currency::constructMinerTx(uint32_t height, size_t medianSize, uint64_t alr
 
   return true;
 }
+
 
 
 bool Currency::isFusionTransaction(const std::vector<uint64_t>& inputsAmounts, const std::vector<uint64_t>& outputsAmounts, size_t size) const {
